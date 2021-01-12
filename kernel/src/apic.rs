@@ -216,7 +216,6 @@ impl Apic {
 
         match &mut self.mode {
             ApicMode::Apic(mapping) => {
-                // Write the value using the APIC memory map
                 core::ptr::write_volatile(&mut mapping[offset / 4], val);
             }
             ApicMode::X2Apic => {

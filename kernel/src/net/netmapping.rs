@@ -148,8 +148,9 @@ impl<'a> NetMapping<'a> {
     /// `server` should be the `ip:port` for the server
     pub fn new(server: &str, filename: &str, read_only: bool) -> Option<Self> {
         // Get access to a network device
+        print!("nigger1\n");
         let netdev = NetDevice::get()?;
-
+        print!("nigger2\n");
         // Connect to the server
         let mut tcp = BufferedIo::new(NetDevice::tcp_connect(netdev, server)?);
 
@@ -158,11 +159,12 @@ impl<'a> NetMapping<'a> {
         tcp.flush();
 
         // Get the response
+        print!("nigger3\n");
         let (file_id, size) = match ServerMessage::deserialize(&mut tcp)? {
             ServerMessage::FileId { id, size } => (id, size),
             _ => return None,
         };
-
+        print!("nigger4\n");
         // Nothing to map
         if size <= 0 { return None; }
 
@@ -178,7 +180,7 @@ impl<'a> NetMapping<'a> {
             crate::mm::alloc_virt_addr_4k(size_align as u64),
             crate::mm::alloc_virt_addr_4k(size_align as u64),
         ];
-
+        print!("nigger6\n");
         // Create a fault handler entry
         let handler = Box::new(NetMapHandler {
             vaddr:     virt_addrs,
@@ -188,7 +190,7 @@ impl<'a> NetMapping<'a> {
             read_only: read_only,
             handling:  LockCell::new(()),
         });
-
+        print!("nigger7\n");
         Some(NetMapping {
             backings: unsafe {
                 [

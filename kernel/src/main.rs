@@ -3,10 +3,11 @@
 #![feature(panic_info_message, alloc_error_handler, llvm_asm, global_asm)]
 #![feature(const_in_array_repeat_expressions, const_generics, new_uninit)]
 #![allow(incomplete_features)]
-
+#![feature(exclusive_range_pattern)]
 #![no_std]
 #![no_main]
-
+#![feature(abi_x86_interrupt)]
+#![feature(const_fn_fn_ptr_basics)]
 extern crate core_reqs;
 
 #[allow(unused_imports)]
@@ -31,7 +32,7 @@ pub mod fuzz_session;
 pub mod test_fuzzer;
 pub mod ept;
 pub mod paging;
-pub mod winboot;
+pub mod test_api;
 
 //pub mod redacted;
 
@@ -91,6 +92,7 @@ pub extern fn entry(boot_args: PhysAddr, core_id: u32) -> ! {
     // get free reign of execution, we've intialized all cores to a state where
     // NMIs and soft reboots work.
     acpi::core_checkin();
+            // "Clear" the screen
 
     // ====================================================================
     // Put your whatever code here, typically I just branch to a module
@@ -98,7 +100,7 @@ pub extern fn entry(boot_args: PhysAddr, core_id: u32) -> ! {
     // ====================================================================
 
     //test_fuzzer::fuzz();
-    winboot::main();
+    test_api::fuzz();
 
     cpu::halt();
 }

@@ -142,6 +142,7 @@ _invoke_realmode:
 
 global _pxecall
 _pxecall:
+	mov word [0xb8000], 0x69
 	pushad
 
 	; Set all selectors to data segments
@@ -230,6 +231,8 @@ _pxecall:
 
 [bits 32]
 backout:
+	mov word [0xb8000], 0x6e	
+	mov word [0xb8000], 0x6d	
 	popad
 	ret
 

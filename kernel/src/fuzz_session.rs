@@ -781,6 +781,31 @@ impl<'a> Worker<'a> {
         }
     }
 
+    pub fn map_zeroed_rw_page(&mut self, paddr: PhysAddr) {
+        assert!(paddr.0 & 0xfff == 0);
+
+        // Get access to physical memory
+        let mut pmem = mm::PhysicalMemory;
+
+        // Allocate a new page
+        let page = pmem.alloc_phys(
+            Layout::from_size_align(4096, 4096).unwrap()).unwrap();
+
+        // Get mutable access to the underlying page
+        let psl = unsafe { mm::slice_phys_mut(page, 4096) };
+        psl.iter_mut().for_each(|x| *x = 4);
+
+        unsafe {
+            // Map the page as read-only
+            self.backing.vm.ept_mut().map_raw(paddr,
+                PageType::Page4K,
+                page.0 | EPT_READ | EPT_WRITE | EPT_EXEC |
+                EPT_USER_EXEC | EPT_MEMTYPE_WB | EPT_DIRTY |
+                EPT_ACCESSED )
+                .unwrap();
+        }
+    }
+
     /// Resolve a `rip` into a `CoverageRecord`. This will attempt to enlighten
     /// if the module does not resolve.
     pub fn resolve_module<'b>(&mut self, rip: u64) -> CoverageRecord<'b> {
@@ -980,13 +1005,64 @@ impl<'a> Worker<'a> {
             // to enforce timeouts and get random coverage sampling
             self.backing.vm.preemption_timer = 
                 Some(self.rng.rand() as u32 % 100000);
-
+            //self.backing.vm.cpu_mode();
             // Run the VM until a VM exit
             let (vmexit, vm_cycles) = self.backing.vm.run();
             self.stats.vm_exits  += 1;
             self.stats.vm_cycles += vm_cycles;
 
             match vmexit {
+                VmExit::CpuId {inst_len} =>{
+                    
+                    let rax = self.reg(Register::Rax) as u32;
+                    let rcx = self.reg(Register::Rcx) as u32;
+/* 
+                    // Take the host cpuid and write it into the guest
+                    unsafe{
+                        let (eax, ebx, ecx, edx) = cpu::cpuid(rax,rcx);
+                        self.set_reg(Register::Eax, eax as u64);
+                        self.set_reg(Register::Ebx, ebx as u64);
+                        self.set_reg(Register::Ecx, ecx as u64);
+                        self.set_reg(Register::Edx, edx as u64);
+                    }
+
+                    // Advance RIP to next instruction
+                    
+                    continue 'vm_loop;*/
+                    // 0x80000000
+                    let mut nig1:u32 = 0;
+                    let mut nig2:u32 = 0;
+                    let mut nig3:u32 = 0;
+                    let mut nig4:u32 = 0;
+                    if rax == 0x1 {
+                        nig2 |=0x80000000;
+                    }
+                    if rax == 0x40000000{
+                        nig1 = 0x40000001;
+
+                        //niggerfaggot
+                        nig2 = 0x6e696767;
+                        nig3 = 0x65726661;
+                        nig4 = 0x67676f74;
+                    }
+                    if rax == 0x40000001{
+                        //0#vH
+                        nig1 = 0x30237648;
+                        nig2 = 0;
+                        nig3 = 0;
+                        nig4 = 0;
+                        
+                    }
+                    self.set_reg(Register::Rax, nig1 as u64);
+                    self.set_reg(Register::Rbx, nig2 as u64);
+                    self.set_reg(Register::Rcx, nig3 as u64);
+                    self.set_reg(Register::Rdx, nig4 as u64);
+                    
+                    //print!("NIGGER CPUID {}", rax);
+                    let rip = self.reg(Register::Rip);
+                    self.set_reg(Register::Rip, rip.wrapping_add(inst_len));
+                    continue 'vm_loop;
+                }
                 VmExit::Rdtsc { inst_len } => {
                     let tsc = self.backing.vm.guest_regs.tsc;
                     self.set_reg(Register::Rax, (tsc >>  0) & 0xffffffff);
@@ -1000,12 +1076,15 @@ impl<'a> Worker<'a> {
                     continue 'vm_loop;
                 }
                 VmExit::EptViolation { addr, read, write, exec } => {
+
+                    
                     if ENABLE_APIC && write &&
                             (addr.0 & !0xfff) == 0xfee0_0000 {
                         // Write was to the APIC, set that we're tracking a
                         // write to the APIC, which will cause us to single
                         // step
                         apic_write = Some(addr);
+                        print!("write to apic");
         
                         unsafe {
                             // Promote the page to writable, and then we single
@@ -1021,11 +1100,23 @@ impl<'a> Worker<'a> {
                         // Handle the exit as we promoted the APIC page to RW
                         continue 'vm_loop;
                     }
-
                     if self.backing.translate(addr, read, write, exec,
-                                              &mut self.pml).is_some() {
+                        &mut self.pml).is_some() {
                         continue 'vm_loop;
+                    }else{
+                        //print!("apic\n");
+                        if addr.0 == 0xfee0_0300{
+                            let mut input: [u8; 60] = [0; 60];
+                            let rip      = self.reg(Register::Rip);
+                            //inject the input into the target program
+                            self.read_virt_into(VirtAddr(rip), &mut input);
+                            print!("{}", self.resolve_module(rip));
+                            print!("{:x?}", input);
+                        }
                     }
+                    
+
+                    
                 }
                 VmExit::PmlFull => {
                     // Log the PML buffer to our growable buffer
@@ -1059,13 +1150,18 @@ impl<'a> Worker<'a> {
                     continue 'vm_loop;
                 }
                 VmExit::Exception(Exception::Breakpoint) => {
+                    /* 
                     let rip = self.reg(Register::Rip);
                     if rip == 0xfffff80429bd04b3 {
                         let (cr, vm, rs, cpl) =
                             last_page_fault.as_ref().unwrap();
                         self.report_crash(&session, cr, vm, rs, *cpl);
                         //break 'vm_loop vmexit;
-                    }
+                    }*/
+                    let rip = self.reg(Register::Rip);
+                    print!("BREAKPOINT HIT NIGGA WOOHOO\n");
+                    print!("{}", rip);
+                    break 'vm_loop vmexit;
                 }
                 VmExit::Exception(Exception::NMI) => {
                     unsafe {
@@ -1084,7 +1180,43 @@ impl<'a> Worker<'a> {
                                       cpl);
                     //break 'vm_loop vmexit;
                 }
+                VmExit::Io { inst_len, gpr } =>{
+                    //print!("io: {}\n", inst_len);
+                    //let mut input: [u8; 60] = [0; 60];
+                    //let rip      = self.reg(Register::Rip);
+                    // inject the input into the target program
+                    //self.read_virt_into(VirtAddr(rip), &mut input);
+                    //print!("{}\n", self.resolve_module(rip));
+                    //print!("{:x?}\n", input);
+                    
+                    let reg = match gpr {
+                        0 => (Register::Rax),
+                        1 => (Register::Rcx),
+                        2 => (Register::Rdx),
+                        3 => (Register::Rbx),
+                        4 => (Register::Rsp),
+                        5 => (Register::Rbp),
+                        6 => (Register::Rsi),
+                        7 => (Register::Rdi),
+                        8 => (Register::R8),
+                        9 => (Register::R9),
+                       10 => (Register::R10),
+                       11 => (Register::R11),
+                       12 => (Register::R12),
+                       13 => (Register::R13),
+                       14 => (Register::R14),
+                       15 => Register::R15,
+                       _ => panic!("Invalid GPR for write CR"),
+                   };
+                   //print!("{}", gpr);
+                   self.set_reg(reg, 0);
+                   
+                   let rip = self.reg(Register::Rip);
+                   self.set_reg(Register::Rip, rip.wrapping_add(inst_len));
+                   continue 'vm_loop;
+                }
                 VmExit::ReadMsr { inst_len } => {
+                    //print!("msrread\n");
                     // Get the MSR ID we're reading
                     let msr = self.reg(Register::Rcx);
 
@@ -1108,6 +1240,7 @@ impl<'a> Worker<'a> {
                     continue 'vm_loop;
                 }
                 VmExit::WriteMsr { inst_len } => {
+                    print!("msrwrite\n");
                     // Get the MSR ID we're writing
                     let msr = self.reg(Register::Rcx);
 
@@ -1215,6 +1348,7 @@ impl<'a> Worker<'a> {
                     continue 'vm_loop;
                 }
                 VmExit::MonitorTrap => {
+                    //print!("monitortrapflag\n");
                     if self.report_coverage(&session) {
                         single_steps = 100;
                     }
@@ -1230,12 +1364,12 @@ impl<'a> Worker<'a> {
 
                             let val = mm::read_phys::<u64>(
                                 PhysAddr(page.0 + (addr.0 & 0xfff)));
-                            /*
+                            
                             print!("APIC write from {} to {:#x} {:#x} with \
                                    {:#x}\n",
                                    self.active_cpu(),
                                    self.reg(Register::Rip),
-                                   addr.0, val);*/
+                                   addr.0, val);
 
                             if addr == PhysAddr(0xfee0_0300) {
                                 let delivery_mode   = (val >>  8) & 7;
@@ -1295,6 +1429,10 @@ impl<'a> Worker<'a> {
                     if GUEST_TRACING {
                         // Log all RIPs executed when in tracing mode
                         let rip = self.reg(Register::Rip);
+                        let mut input: [u8; 60] = [0; 60];
+                        //inject the input into the target program
+                        self.read_virt_into(VirtAddr(rip), &mut input);
+                        print!("{:x?}\n", input);
                         self.trace.push(rip);
                     }
                     continue 'vm_loop;
@@ -1927,10 +2065,11 @@ impl<'a> FuzzSession<'a> {
             .expect("Failed to netmap falkdump"));
 
         print!("Netmapped {}, {} bytes\n", name, memory.len());
-
+        
         // Check the signature
         assert!(&memory[..8] == b"FALKDUMP", "Invalid signature for falkdump");
 
+        
         // Get a pointer to the file contents
         let mut ptr = &memory[8..];
 
@@ -2137,8 +2276,31 @@ impl<'a> FuzzSession<'a> {
             filter_ars!(Register::GsAccessRights, Register::GsLimit);
             filter_ars!(Register::LdtrAccessRights, Register::LdtrLimit);
             filter_ars!(Register::TrAccessRights, Register::TrLimit);
+
+            print!("guest regs");
         }
         
+        
+// impl fmt::Display for BasicRegisterState {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         write!(f,
+// r#"rax {:016x} rcx {:016x} rdx {:016x} rbx {:016x}
+// rsp {:016x} rbp {:016x} rsi {:016x} rdi {:016x}
+// r8  {:016x} r9  {:016x} r10 {:016x} r11 {:016x}
+// r12 {:016x} r13 {:016x} r14 {:016x} r15 {:016x}
+// rfl {:016x}
+// rip {:016x}
+// cr2 {:016x} cr3 {:016x}"#,
+//             self.rax, self.rcx, self.rdx, self.rbx,
+//             self.rsp, self.rbp, self.rsi, self.rdi,
+//             self.r8,  self.r9,  self.r10, self.r11,
+//             self.r12, self.r13, self.r14, self.r15,
+//             self.rfl,
+//             self.rip,
+//             self.cr2, self.cr3)
+//     }
+// }
+
         // Init the master VM
         init_master(&mut master);
 
@@ -2197,8 +2359,11 @@ impl<'a> FuzzSession<'a> {
        
         if ENABLE_APIC {
             // Map in a read-only APIC
-            worker.map_zeroed_readonly_page(PhysAddr(0xfee00000));
+            //worker.map_zeroed_readonly_page(PhysAddr(0xfee00000));
         }
+        //worker.map_zeroed_rw_page(PhysAddr(0xfee00000));
+        // Map a zeroed out HPET
+        worker.map_zeroed_readonly_page(PhysAddr(0xfed00000));
 
         // Connect to the server and associate this connection with the
         // worker

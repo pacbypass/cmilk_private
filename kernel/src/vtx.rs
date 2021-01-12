@@ -90,7 +90,7 @@ unsafe fn invalidate_ept(eptp: u128) {
 
 /// Reads the contents of the current VMCS field based on `encoding`
 #[inline]
-unsafe fn vmread(encoding: Vmcs) -> u64 {
+pub unsafe fn vmread(encoding: Vmcs) -> u64 {
     let ret;
     llvm_asm!(r#"
             xor    eax, eax
@@ -112,7 +112,7 @@ unsafe fn vmwrite(encoding: Vmcs, val: u64) {
 #[derive(Clone, Copy)]
 #[allow(unused)]
 #[repr(u64)]
-enum Vmcs {
+pub enum Vmcs {
     /// Virtual processor identifier
     Vpid = 0,
 
@@ -755,6 +755,8 @@ pub struct RegisterState {
     pub dirtied: [u8; (Register::NumRegisters as usize + 7) / 8],
 }
 
+
+
 impl RegisterState {
     /// Copy a register state from another one
     pub fn copy_from(&mut self, other: &RegisterState) {
@@ -1143,7 +1145,7 @@ pub enum CpuMode {
 pub enum VmExit {
     VmCall,
     InterruptWindow,
-    Io,
+    Io { inst_len: u64, gpr: u8,},
     MonitorTrap,
     EptViolation {
         addr:  PhysAddr,
@@ -1155,6 +1157,7 @@ pub enum VmExit {
     ExternalInterrupt,
     PreemptionTimer,
     Rdtsc { inst_len: u64 },
+    CpuId { inst_len: u64 },
     Timeout,
     ReadMsr { inst_len: u64 },
     WriteMsr { inst_len: u64 },
@@ -1403,7 +1406,7 @@ impl Vm {
             //   Use I/O bitmaps
             //   TPR shadow
             let proc_on  = (1 << 31) | (1 << 7) | (1 << 11) | (1 << 15) |
-                (1 << 16) | (1 << 23) | (1 << 24) | (1 << 11) | (1 << 12);
+                (1 << 16) | (1 << 23) | (1 << 24) | (1 << 11) | (1 << 12) | (1<<31);
             let proc_off = (1 << 28) | (1 << 25) | (1 << 21);
             
             // Processor controls 2:
@@ -1417,7 +1420,7 @@ impl Vm {
             //     Disable RDTSCP
             //     Disable XSAVES/XRSTORS
             let proc2_on  = (1 << 1) | (1 << 5) | (1 << 17) | (1 << 11) |
-                (1 << 16);
+                (1 << 16) ;
             let proc2_off = (1 << 3) | (1 << 20);
 
             // Validate that desired bits can be what was desired
@@ -1679,7 +1682,7 @@ impl Vm {
             
                 // NX enable
                 // Long mode active, enable
-                vmwrite(Vmcs::HostIa32Efer, (1 << 11) | (1 << 10) | (1 << 8));
+                vmwrite(Vmcs::HostIa32Efer, (1 << 11) | (1 << 10) | (1 << 8) | (1<< 0));
 
                 // Set the VPID for the guest
                 vmwrite(Vmcs::Vpid, core!().id as u64 + 1);
@@ -1697,6 +1700,7 @@ impl Vm {
         
         // Set the 64-bit guest entry control flag based on the EFER
         let lma = (self.reg(Register::Efer) & (1 << 10)) != 0;
+        
         self.mod_reg(Register::EntryControls, |x| {
             if lma {
                 // Set that we have a 64-bit guest
@@ -1705,6 +1709,9 @@ impl Vm {
                 // Clear that the guest is 64-bit
                 x & !(1 << 9)
             }
+        });
+        self.mod_reg(Register::Cr0, |x| {
+            x | (0 << 0)
         });
 
         // Set unrestricted guest mode if we have a guest without paging
@@ -1954,6 +1961,10 @@ impl Vm {
             }
             1 => VmExit::ExternalInterrupt,
             7 => VmExit::InterruptWindow,
+            10=> {
+                let inst_len = self.reg(Register::ExitInstructionLength);
+                VmExit::CpuId { inst_len }  
+            }
             16 => {
                 let inst_len = self.reg(Register::ExitInstructionLength);
                 VmExit::Rdtsc { inst_len }
@@ -1983,7 +1994,10 @@ impl Vm {
                 }
             }
             30 => {
-                VmExit::Io
+                let exit_qual = unsafe { vmread(Vmcs::ExitQualification) };
+                let gpr = ((exit_qual >> 8) & 0xf) as u8;
+                let inst_len = self.reg(Register::ExitInstructionLength);
+                VmExit::Io {inst_len, gpr }
             }
             31 => {
                 // Read an MSR

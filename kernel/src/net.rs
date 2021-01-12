@@ -139,7 +139,9 @@ impl NetDevice {
 
         // Go through all network devices on the system looking for the least
         // contended network device
+        
         for net_device in NET_DEVICES.lock().iter() {
+            print!("device\n");
             // Compute the current best strong count for a net device. We
             // subtract 1 because storing it in `ret` increases the strong
             // count unconditonally by 1.

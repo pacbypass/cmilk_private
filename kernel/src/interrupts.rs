@@ -374,6 +374,7 @@ pub unsafe extern fn interrupt_handler(
         }
     }
 
+
     // Handle page faults
     if number == 0xe {
         // Invoke all page fault handlers
