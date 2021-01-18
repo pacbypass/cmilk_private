@@ -222,9 +222,10 @@ pub fn probe(device: &PciDevice) -> Option<Arc<NetDevice>> {
         if device.header.vendor_id == vid && device.header.device_id == did {
             if device.bar0 == 2864185344 || device.bar0 == 2863136768 ||
                     device.bar0 == 2862612480 {
+                print!("continuing\n");
                 continue;
             }
-
+            print!("handled some bitch\n");
             // Create the new device
             return Some(
                 NetDevice::new(Box::new(IntelGbit::new(*device, regs)))
@@ -726,4 +727,3 @@ impl NetDriver for IntelGbit {
         self.write(self.regs.imc, !0);
     }
 }
-

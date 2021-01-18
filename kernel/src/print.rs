@@ -234,4 +234,3 @@ pub fn _print_blue(args: fmt::Arguments) {
         writer.color_code = ColorCode::new(Color::Green, Color::Black);
     });
 }
-

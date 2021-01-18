@@ -25,10 +25,10 @@ pub fn fuzz() {
             // for _ in 0..26 {
             //     print!("\n");
             // }
-            print!("LETS FUZZ! 192.168.1.175:1911\n");
+            print!("LETS FUZZ! 192.168.2.175:1911\n");
             *session = Some(
                 Arc::new(FuzzSession::from_falkdump(
-                        "192.168.1.175:1911", "32bit.falkdump", |_worker| {
+                        "192.168.2.175:1911", "32bit.falkdump", |_worker| {
                 })
                 .timeout(1_000_000_000)
                 .inject(inject))

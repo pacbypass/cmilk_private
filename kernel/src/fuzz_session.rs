@@ -51,7 +51,7 @@ const GUEST_PROFILING: bool = false;
 
 /// If enabled, the guest is single stepped and all RIPs are logged during
 /// execution. This is incredibly slow and memory intensive, use for debugging.
-const GUEST_TRACING: bool = true;
+const GUEST_TRACING: bool = false;
 
 /// When set, the APIC will be monitored for writes. This is not done yet, do
 /// not use!
@@ -1063,6 +1063,7 @@ impl<'a> Worker<'a> {
                     self.set_reg(Register::Rip, rip.wrapping_add(inst_len));
                     continue 'vm_loop;
                 }
+                
                 VmExit::Rdtsc { inst_len } => {
                     let tsc = self.backing.vm.guest_regs.tsc;
                     self.set_reg(Register::Rax, (tsc >>  0) & 0xffffffff);
@@ -1158,9 +1159,9 @@ impl<'a> Worker<'a> {
                         self.report_crash(&session, cr, vm, rs, *cpl);
                         //break 'vm_loop vmexit;
                     }*/
-                    let rip = self.reg(Register::Rip);
-                    print!("BREAKPOINT HIT NIGGA WOOHOO\n");
-                    print!("{}", rip);
+                    //let rip = self.reg(Register::Rip);
+                    //print!("BREAKPOINT HIT NIGGA WOOHOO\n");
+                    //print!("{}", rip);
                     break 'vm_loop vmexit;
                 }
                 VmExit::Exception(Exception::NMI) => {
@@ -1170,6 +1171,10 @@ impl<'a> Worker<'a> {
                         cpu::halt();
                     }
                 }
+                /* 
+                VmExit::Exception(Exception::GeneralProtectionFault(nignog:u64)) => {
+                    print!("nig {:x}", nignog);
+                }*/
                 VmExit::Exception(_) => {
                     let rip      = self.reg(Register::Rip);
                     let modoff   = self.resolve_module(rip);
@@ -1429,10 +1434,10 @@ impl<'a> Worker<'a> {
                     if GUEST_TRACING {
                         // Log all RIPs executed when in tracing mode
                         let rip = self.reg(Register::Rip);
-                        let mut input: [u8; 60] = [0; 60];
+                        //let mut input: [u8; 60] = [0; 60];
                         //inject the input into the target program
-                        self.read_virt_into(VirtAddr(rip), &mut input);
-                        print!("{:x?}\n", input);
+                        //self.read_virt_into(VirtAddr(rip), &mut input);
+                        //print!("{:x?}\n", input);
                         self.trace.push(rip);
                     }
                     continue 'vm_loop;
@@ -2214,7 +2219,6 @@ impl<'a> FuzzSession<'a> {
             regs.set_reg(Register::SysenterCs,  consume!(tptr, u64));
             regs.set_reg(Register::SysenterEsp, consume!(tptr, u64));
             regs.set_reg(Register::SysenterEip, consume!(tptr, u64));
-            
             regs.set_reg(Register::Efer, consume!(tptr, u64));
 
             let _ = consume!(tptr, u64);
@@ -2242,12 +2246,14 @@ impl<'a> FuzzSession<'a> {
             let efer = regs.reg(Register::Efer);
             if efer & (1 << 8) != 0 {
                 // Long mode, QEMU gives some non-zero limits, zero them out
+
+                /* 
                 regs.set_reg(Register::EsLimit, 0);
                 regs.set_reg(Register::CsLimit, 0);
                 regs.set_reg(Register::SsLimit, 0);
                 regs.set_reg(Register::DsLimit, 0);
                 regs.set_reg(Register::FsLimit, 0);
-                regs.set_reg(Register::GsLimit, 0);
+                regs.set_reg(Register::GsLimit, 0);*/
             }
 
             /// Perform some filtering of the access rights as QEMU and VT-x
@@ -2324,7 +2330,57 @@ impl<'a> FuzzSession<'a> {
             server_addr:      server.into(),
         }
     }
+    /*pub fn from_windbg<S, F>(server: &str, name: S, init_master: F) -> Self
+    where F: FnOnce(&mut Worker),
+          S: AsRef<str> {
+    
+            macro_rules! consume {
+                ($ptr:expr, $ty:ty) => {{
+                    let ret = <$ty>::from_le_bytes(
+                        $ptr[..size_of::<$ty>()].try_into().unwrap());
+                    $ptr = &$ptr[size_of::<$ty>()..];
+                    ret
+                }}
+            }
+    
+            // Convert the generic name into a reference to a string
+            let name: &str = name.as_ref();
+    
+            // Network map the memory file contents as read-only
+            let memory = Arc::new(NetMapping::new(server, name, true)
+                .expect("Failed to netmap falkdump"));
+    
+            print!("Netmapped {}, {} bytes\n", name, memory.len());
+            
+            // Check the signature
+            assert!(&memory[..8] == b"FALKDUMP", "Invalid signature for falkdump");
+    
+            
+            // Get a pointer to the file contents
+            let mut ptr = &memory[8..];
+    
+            // Get the number of regions
+            //let regions = consume!(ptr, u64);
 
+            FuzzSession {
+                master_vm:        Default::default(),
+                coverage:         Aht::new(),
+                pending_coverage: LockCell::new(Vec::new()),
+                pending_inputs:   LockCell::new(Vec::new()),
+                stats:            LockCell::new(Statistics::default()),
+                timeout:          None,
+                inject:           None,
+                vmexit_filter:    None,
+                input_dedup:      Aht::new(),
+                crashes:          Aht::new(),
+                inputs:           AtomicVec::new(),
+                workers:          AtomicU64::new(0),
+                id:               cpu::rdtsc(),
+                server_addr:      Default::default,
+            }
+
+
+    }*/
     /// Set the timeout for the VMs in microseconds
     pub fn timeout(mut self, timeout: u64) -> Self {
         self.timeout = Some(timeout);

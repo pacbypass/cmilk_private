@@ -2,3 +2,8 @@
 /build
 /pxe
 /kernel/src/redacted.rs
+/minidump_parser/target
+/server/target
+/server/crashes
+/server/files
+/server/inputs

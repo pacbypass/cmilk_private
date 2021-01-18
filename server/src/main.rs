@@ -197,7 +197,7 @@ fn handle_client(stream: TcpStream,
 
     loop {
         // Deserialize the message
-        print!("msg\n");
+        //print!("msg\n");
         let msg = ServerMessage::deserialize(&mut stream)
             .expect("Failed to deserialize ServerMessage");
 

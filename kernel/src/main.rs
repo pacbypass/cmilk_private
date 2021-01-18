@@ -25,6 +25,7 @@ pub mod apic;
 pub mod acpi;
 pub mod intrinsics;
 pub mod pci;
+pub mod minidump;
 pub mod net;
 pub mod time;
 pub mod vtx;

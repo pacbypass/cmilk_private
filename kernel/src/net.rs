@@ -139,7 +139,6 @@ impl NetDevice {
 
         // Go through all network devices on the system looking for the least
         // contended network device
-        
         for net_device in NET_DEVICES.lock().iter() {
             print!("device\n");
             // Compute the current best strong count for a net device. We
@@ -172,9 +171,10 @@ impl NetDevice {
         
         // Wrap up the network device in an `Arc`
         let nd = Arc::new(nd);
-
+        print!("getting lease\n");
         // Attempt to get a DHCP lease for this device
         let lease = dhcp::get_lease(nd.clone());
+        print!("got lease\n");
 
         {
             // Assign the lease
@@ -560,4 +560,3 @@ impl<'a> DerefMut for PacketLease<'a> {
         self.packet.as_mut().unwrap()
     }
 }
-

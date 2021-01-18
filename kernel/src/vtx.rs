@@ -1931,6 +1931,7 @@ impl Vm {
                 if let Exception::GeneralProtectionFault(ref mut info) =
                         exception {
                     *info = self.reg(Register::ExitInterruptionErrorCode);
+                    //print!("info: {:x}\n", info);
                 }
 
                 // If this exception was a page fault, store the faulting
