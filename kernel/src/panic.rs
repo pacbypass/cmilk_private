@@ -234,8 +234,6 @@
 // // }
 
 //! Panic handlers and soft reboots for the kernel
-
-use core::fmt::Write;
 use core::panic::PanicInfo;
 use core::sync::atomic::{AtomicPtr, AtomicBool, Ordering};
 
@@ -361,6 +359,7 @@ pub unsafe fn soft_reboot(apic: &mut Apic) -> ! {
 }
 
 /// Panic implementation for the kernel
+#[allow(deprecated)]
 #[panic_handler]
 pub fn panic(info: &PanicInfo) -> ! {
     // Disable interrupts, we're never coming back from this point.

@@ -2,10 +2,9 @@ use core::fmt;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use volatile::Volatile;
-use crate::mm;
 #[cfg(test)]
 use crate::{serial_print, serial_println};
-use boot_args::{KERNEL_PHYS_WINDOW_BASE, KERNEL_PHYS_WINDOW_SIZE};
+use boot_args::{KERNEL_PHYS_WINDOW_BASE};
 //KERNEL_PHYS_WINDOW_BASE + paddr.0) as *mut
 lazy_static! {
     /// A global `Writer` instance that can be used for printing to the VGA text buffer.

@@ -1,6 +1,5 @@
 //! An very lightweight ACPI implementation for extracting basic information
 //! about CPU topography and NUMA memory regions
-
 use core::mem::size_of;
 use core::sync::atomic::{AtomicU32, Ordering, AtomicU8};
 use core::convert::TryInto;
@@ -76,6 +75,7 @@ pub fn core_state(apic_id: u32) -> ApicState {
 }
 
 /// Check in that the current core has booted
+#[allow(deprecated)]
 pub fn core_checkin() {
     /// Number of cores which have checked in
     static CORES_CHECKED_IN: AtomicU32 = AtomicU32::new(0);

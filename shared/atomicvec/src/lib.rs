@@ -1,9 +1,7 @@
 //! An atomic vector with a fixed size capacity and insert-only semantics
-
 #![no_std]
 #![feature(const_generics)]
 #![allow(incomplete_features)]
-
 extern crate alloc;
 
 use core::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
@@ -53,6 +51,7 @@ impl<T, const N: usize> AtomicVec<T, N> {
     pub const fn capacity(&self) -> usize { N }
 
     /// Push an element to the vector
+    #[allow(deprecated)]
     #[track_caller]
     pub fn push(&self, element: Box<T>) {
         // Get a unique index for insertion. We don't do a fetch add here such

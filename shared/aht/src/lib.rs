@@ -4,7 +4,6 @@
 #![feature(const_generics)]
 #![allow(incomplete_features)]
 #![no_std]
-
 extern crate alloc;
 
 use core::mem::MaybeUninit;
@@ -94,6 +93,7 @@ impl<K, V, const N: usize> Aht<K, V, N> {
     /// Returns a reference to the inserted or old entry in the table
     /// If the key was already in the table, returns `Err(ref old entry)`
     /// otherwise it returns `Ok(ref new entry)`
+    #[allow(deprecated)]
     pub fn entry_or_insert<F, Q>(&self, key: &Q, mut hash: usize,
                                  insert: F) -> Entry<V>
             where F: FnOnce() -> Box<V>,

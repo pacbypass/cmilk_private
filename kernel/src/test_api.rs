@@ -1,12 +1,11 @@
 use core::any::Any;
 use alloc::sync::Arc;
 use alloc::boxed::Box;
-use alloc::vec::Vec;
 
-use page_table::*;
 use crate::vtx::*;
 use crate::core_locals::LockInterrupts;
-use crate::fuzz_session::{Worker, FuzzSession};
+use falktp::CoverageRecord;
+use crate::fuzz_session::{Worker, FuzzSession, BasicRegisterState};
 
 use lockcell::LockCell;
 
@@ -31,7 +30,8 @@ pub fn fuzz() {
                         "192.168.2.175:1911", "32bit.falkdump", |_worker| {
                 })
                 .timeout(1_000_000_000)
-                .inject(inject))
+                .inject(inject)
+                .bp_handler(bphandler))
             );
         }
         session.as_ref().unwrap().clone()
@@ -46,19 +46,25 @@ pub fn fuzz() {
     //let seed = worker.rng.rand();
     //print!("{}\n", seed);
     //worker.mutator.max_input_size(128).seed(seed as u64);
-    let mut first_run = 1;
+    //let mut first_run = 1;
     loop {
         let _vmexit = worker.fuzz_case(&mut ());
-        first_run = 0;
+        //first_run = 0;
         //print!("vmexit {:#x?}\n", _vmexit);
     }
 }
+//type BpHandler<'a> = fn(&mut Worker<'a>) -> bool;
+
+fn bphandler(_worker: &mut Worker, _lpf: &(CoverageRecord, VmExit, BasicRegisterState, u8)) -> bool{
+    print!("bp handler hit");
+    return true;
+}
 
 //mutate testcase, get's called on each fuzz case
-fn inject(worker: &mut Worker, _context: &mut dyn Any) {   
+fn inject(_worker: &mut Worker, _context: &mut dyn Any) {   
     
     //injection point
-    let rbx = worker.reg(Register::Rbx);
+    //let rbx = worker.reg(Register::Rbx);
     
     //get and reset the imput
     /*let mut input = worker.fuzz_input.take().unwrap();
@@ -79,7 +85,7 @@ fn inject(worker: &mut Worker, _context: &mut dyn Any) {
     */
 
     //let mut input = worker.mutate().unwrap();
-    let mut input: [u8; 1] = [0xcc];
+    //let mut input: [u8; 1] = [0xcc];
     // inject the input into the target program
     //worker.write_virt_from(VirtAddr(rbx), &input);
     /*

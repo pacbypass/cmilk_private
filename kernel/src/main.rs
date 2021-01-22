@@ -34,6 +34,7 @@ pub mod test_fuzzer;
 pub mod ept;
 pub mod paging;
 pub mod test_api;
+//p1ub mod vmexit_test;
 
 //pub mod redacted;
 

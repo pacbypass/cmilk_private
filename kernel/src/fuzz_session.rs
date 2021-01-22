@@ -612,6 +612,7 @@ pub struct Worker<'a> {
     
     /// Vector to hold all RIPs executed when `GUEST_TRACING` is enabled
     trace: Vec<u64>,
+
 }
 
 impl<'a> Worker<'a> {
@@ -1015,7 +1016,7 @@ impl<'a> Worker<'a> {
                 VmExit::CpuId {inst_len} =>{
                     
                     let rax = self.reg(Register::Rax) as u32;
-                    let rcx = self.reg(Register::Rcx) as u32;
+                    //let rcx = self.reg(Register::Rcx) as u32;
 /* 
                     // Take the host cpuid and write it into the guest
                     unsafe{
@@ -1151,17 +1152,22 @@ impl<'a> Worker<'a> {
                     continue 'vm_loop;
                 }
                 VmExit::Exception(Exception::Breakpoint) => {
-                    /* 
-                    let rip = self.reg(Register::Rip);
-                    if rip == 0xfffff80429bd04b3 {
-                        let (cr, vm, rs, cpl) =
-                            last_page_fault.as_ref().unwrap();
-                        self.report_crash(&session, cr, vm, rs, *cpl);
-                        //break 'vm_loop vmexit;
-                    }*/
+                    
+                    // let rip = self.reg(Register::Rip);
+                    // if rip == 0xfffff80429bd04b3 {
+                    //     let (cr, vm, rs, cpl) =
+                    //         last_page_fault.as_ref().unwrap();
+                    //     self.report_crash(&session, cr, vm, rs, *cpl);
+                    //     //break 'vm_loop vmexit;
+                    // }
                     //let rip = self.reg(Register::Rip);
                     //print!("BREAKPOINT HIT NIGGA WOOHOO\n");
                     //print!("{}", rip);
+                    if let Some(breakpoint_handler) = session.breakpoint_handler {
+                        if breakpoint_handler(self, last_page_fault.as_ref().unwrap() ) {
+                            continue 'vm_loop;
+                        }
+                    }
                     break 'vm_loop vmexit;
                 }
                 VmExit::Exception(Exception::NMI) => {
@@ -1464,6 +1470,7 @@ impl<'a> Worker<'a> {
                     continue 'vm_loop;
                 }
             }
+
 
             // Unhandled VM exit, break
             break 'vm_loop vmexit;
@@ -2000,7 +2007,8 @@ impl<'a> Worker<'a> {
 type InjectCallback<'a> = fn(&mut Worker<'a>, &mut dyn Any);
 
 type VmExitFilter<'a> = fn(&mut Worker<'a>, &VmExit) -> bool;
-
+//type BpHandler<'a> = fn(&mut Worker<'a>) -> bool;
+type BpHandler<'a> = fn(&mut Worker<'a>, &(CoverageRecord, VmExit, BasicRegisterState, u8)) -> bool;
 /// A session for multiple workers to fuzz a shared job
 pub struct FuzzSession<'a> {
     /// Master VM state
@@ -2046,6 +2054,9 @@ pub struct FuzzSession<'a> {
 
     /// "Unique" session identifier
     id: u64,
+
+    // our custom bp handler
+    breakpoint_handler: Option<BpHandler<'a>>,
 }
 
 impl<'a> FuzzSession<'a> {
@@ -2314,6 +2325,7 @@ impl<'a> FuzzSession<'a> {
         let master = Arc::new(master.backing);
 
         FuzzSession {
+            breakpoint_handler: None,
             master_vm:        master,
             coverage:         Aht::new(),
             pending_coverage: LockCell::new(Vec::new()),
@@ -2400,6 +2412,10 @@ impl<'a> FuzzSession<'a> {
     pub fn vmexit_filter(mut self, vmexit_filter: VmExitFilter<'a>)
             -> Self {
         self.vmexit_filter = Some(vmexit_filter);
+        self
+    }
+    pub fn bp_handler(mut self, breakpoint_handler:BpHandler<'a>) -> Self{
+        self.breakpoint_handler = Some(breakpoint_handler);
         self
     }
 
