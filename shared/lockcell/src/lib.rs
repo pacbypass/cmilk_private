@@ -112,6 +112,7 @@ impl<T, I: InterruptState> LockCell<T, I> {
 
 impl<T: ?Sized, I: InterruptState> LockCell<T, I> {
     /// Get exclusive access to the value guarded by the lock
+    #[warn(deprecated)]
     #[track_caller]
     pub fn lock(&self) -> LockCellGuard<T, I> {
         // If this lock does not disable interrupts, and we're currently in
@@ -192,7 +193,6 @@ impl<T: ?Sized, I: InterruptState> LockCell<T, I> {
                     }
                 }
             }
-
             spin_loop_hint();
         }
 
