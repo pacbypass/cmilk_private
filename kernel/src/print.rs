@@ -2,8 +2,6 @@ use core::fmt;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use volatile::Volatile;
-#[cfg(test)]
-use crate::{serial_print, serial_println};
 use boot_args::{KERNEL_PHYS_WINDOW_BASE};
 //KERNEL_PHYS_WINDOW_BASE + paddr.0) as *mut
 lazy_static! {
@@ -192,44 +190,27 @@ macro_rules! vga_println {
     ($($arg:tt)*) => ($crate::vga_print!("{}\n", format_args!($($arg)*)));
 }
 
+// /// Prints the given formatted string to the VGA text buffer
+// /// through the global `WRITER` instance.
+// #[doc(hidden)]
+// pub fn _print(args: fmt::Arguments) {
+//     use core::fmt::Write;
+//     use x86_64::instructions::interrupts;
+
+//     interrupts::without_interrupts(|| {
+//         WRITER.lock().write_fmt(args).unwrap();
+//     });
+// }
+
 /// Prints the given formatted string to the VGA text buffer
 /// through the global `WRITER` instance.
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
-    use x86_64::instructions::interrupts;
+    //use x86_64::instructions::interrupts;
 
-    interrupts::without_interrupts(|| {
+    //interrupts::without_interrupts(|| {
         WRITER.lock().write_fmt(args).unwrap();
-    });
+    //});
 }
 
-/// Prints the given formatted string to the VGA text buffer
-/// through the global `WRITER` instance.
-#[doc(hidden)]
-pub fn _print_red(args: fmt::Arguments) {
-    use core::fmt::Write;
-    use x86_64::instructions::interrupts;
-
-    interrupts::without_interrupts(|| {
-        let mut writer = WRITER.lock();
-        writer.color_code = ColorCode::new(Color::Red, Color::Black);
-        writer.write_fmt(args).unwrap();
-        writer.color_code = ColorCode::new(Color::Green, Color::Black);
-    });
-}
-
-/// Prints the given formatted string to the VGA text buffer
-/// through the global `WRITER` instance.
-#[doc(hidden)]
-pub fn _print_blue(args: fmt::Arguments) {
-    use core::fmt::Write;
-    use x86_64::instructions::interrupts;
-
-    interrupts::without_interrupts(|| {
-        let mut writer = WRITER.lock();
-        writer.color_code = ColorCode::new(Color::Blue, Color::Black);
-        writer.write_fmt(args).unwrap();
-        writer.color_code = ColorCode::new(Color::Green, Color::Black);
-    });
-}

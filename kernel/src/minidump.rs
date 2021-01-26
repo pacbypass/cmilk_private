@@ -131,19 +131,3 @@ impl MiniDump {
         })
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::*;
-
-    #[test]
-    fn it_works() {
-        let minidump = std::fs::read("fulldump.dmp").unwrap();
-        let minidump = MiniDump::parse(&minidump).unwrap();
-        for (paddr, data) in minidump.phys_ranges.iter() {
-            print!("{:016x} {:016x} {:02x?}\n",
-                   paddr, paddr + (data.len() as u64 - 1),
-                   &data[..8]);
-        }
-    }
-}
