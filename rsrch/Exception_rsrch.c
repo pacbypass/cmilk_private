@@ -11,7 +11,7 @@ ntdll!KiUserExceptionDispatch
 // use !wow64exts.sw in KD to make 64 bit kernel work in 32 bit KD context
 will need to check as far as terminateprocess goes
  */
- 
+ //s
  VOID
  NTAPI
  KiDispatchException(IN PEXCEPTION_RECORD ExceptionRecord,
