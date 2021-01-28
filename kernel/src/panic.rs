@@ -101,7 +101,7 @@ pub unsafe fn soft_reboot(apic: &mut Apic) -> ! {
     // Disable all other cores
     disable_all_cores(apic);
     
-    // Destroy all devices which are handled by drivers
+    // Destroy all sdevices which are handled by drivers
     crate::pci::destroy_devices();
 
     // Reset the APIC state

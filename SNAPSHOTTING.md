@@ -113,3 +113,30 @@ KVM for the virt speedup during snapshotting.
 ## Take a snapshot
 
 Arrange the guest with GDB to be at the right location. Once you found the right place, go into the QEMU monitor and type `dump-guest-memory <filename>`. This file is directly what is consumed by chocolate milk!
+
+
+# Notes on Page Heap snapshotting
+
+On windows running inside qemu, Page heap work in a weird ass way. The usual way to snapshot a process with page heap would be:
+
+1. Enable page heap for the process
+2. Reboot
+3. take the perfect snapshot from qemu on FIRST TRY,
+
+ as the qemu or windows allocator with page heap has a big problem. Mainly when the process exits, the pages unmapped/free'd.
+ as we know, free'd pages on page heap are not permitted to be used by anyone else to detect it. Windows due to aslr of course 
+ maps the process in the same place for the sake of completeness. The problem is that, page heap is preventing that memory from being used 
+ (yeah, kernel should have cleaned that up, but it didnt). Winbag can see the addresses as before, as they have been somehow aliased/used nested mapping
+ to just interpret them as such in windbg.
+
+ That means that, when accessing the eip address of that process executed 2nd time in a row from QEMU gdbserver, will result in an error, while reading
+ it from windbg will be just fine.
+
+ summing it up: the USERMODE APP snapshot, has to be taken during the first time the process was executed since qemu boot up.
+
+
+ ## todo
+
+ # Notes on Special pools/kernel page heap 
+
+ ...
