@@ -7,6 +7,19 @@ use core::any::Any;
 use falktp::CoverageRecord;
 use page_table::VirtAddr;
 
+/*
+
+x nt!ntwritefile; 
+x nt!ntreadfile; 
+x nt!ntcreatefile; 
+x ntdll!KiUserExceptionDispatch; 
+x nt!NtQueryInformationFile; 
+x nt!NtQueryAttributesFile; 
+.dump  /f C:\snaps\foxit_converttopdf.dmp
+
+
+
+*/
 use lockcell::LockCell;
 
 const STATUS_INVALID_HANDLE: u32 = 0xC0000008;
@@ -100,6 +113,9 @@ enum BreakPoint {
     // ReadFile addy
     ReadFile = 0xe,
 
+    // NtWriteFile
+    WriteFile = 0x235,
+
     // End of test case, followed by an immediate exit.
     CaseEnd = 0x34,
     //SPROBUJ PUSCIC TYLKO Z READFILE I CREATEFILE i zobaczymy
@@ -117,6 +133,11 @@ fn bphandler(
     print!("bp handler hit");
 
     let rip: BreakPoint = unsafe { core::mem::transmute(_worker.reg(Register::Rip)) };
+
+    let rsp = _worker.reg(Register::Rsp);
+    let return_address = _worker
+        .read_virt::<u64>(VirtAddr(rsp))
+        .expect("fugffff\n");
     match rip {
         BreakPoint::ReadFile => {
             /*
@@ -142,6 +163,23 @@ fn bphandler(
             0000028d`2ef2fd10  00000000 00000000 00000000 00000000
 
             */
+
+            /*
+            NTSTATUS NtReadFile(
+                _In_     HANDLE           FileHandle,
+                _In_opt_ HANDLE           Event,
+                _In_opt_ PIO_APC_ROUTINE  ApcRoutine,
+                _In_opt_ PVOID            ApcContext,
+                _Out_    PIO_STATUS_BLOCK IoStatusBlock,
+                _Out_    PVOID            Buffer,
+                _In_     ULONG            Length,
+                _In_opt_ PLARGE_INTEGER   ByteOffset,
+                _In_opt_ PULONG           Key
+            );
+            
+            */
+
+
 
             // add support for file size-related operations ETC.
             // we need to support "PLARGE_INTEGER   ByteOffset" <- kinda done
@@ -184,6 +222,8 @@ fn bphandler(
 
             _worker.fuzz_input = Some(slice);
 
+            _worker.set_reg(Register::Rip, return_address);
+
             return true;
         }
 
@@ -205,7 +245,23 @@ fn bphandler(
             000001ec`1605b800  "EXE-EE1C9ACA.pf"
 
             */
-
+            /*
+            __kernel_entry NTSTATUS NtCreateFile(
+                PHANDLE            FileHandle,
+                ACCESS_MASK        DesiredAccess,
+                POBJECT_ATTRIBUTES ObjectAttributes,
+                PIO_STATUS_BLOCK   IoStatusBlock, // CHECK IF WE NEED TO WRITE THIS BACK 
+                PLARGE_INTEGER     AllocationSize,
+                ULONG              FileAttributes,
+                ULONG              ShareAccess,
+                ULONG              CreateDisposition,
+                ULONG              CreateOptions,
+                PVOID              EaBuffer,
+                ULONG              EaLength
+            );
+            
+            
+            */
             // the utf-16 bytes we read to detect the filename
             let mut file_name_bytes: [u8; 128] = [0; 128];
 
@@ -238,9 +294,36 @@ fn bphandler(
             let handle: i32 = if fname == "nigger" { 0x6969 } else { -1 };
 
             // write back our fake handle
-            _worker.set_reg(Register::Rax, 0);
+            
             let addr = VirtAddr(_worker.reg(Register::Rcx));
             _worker.write_virt::<i32>(addr, handle);
+
+            _worker.set_reg(Register::Rip, return_address);
+            return true;
+        }
+        BreakPoint::WriteFile =>{
+
+            /*
+            __kernel_entry NTSYSCALLAPI NTSTATUS NtWriteFile(
+                HANDLE           FileHandle,
+                HANDLE           Event,
+                PIO_APC_ROUTINE  ApcRoutine,
+                PVOID            ApcContext,
+                PIO_STATUS_BLOCK IoStatusBlock, // OUT
+                PVOID            Buffer,
+                ULONG            Length,
+                PLARGE_INTEGER   ByteOffset,
+                PULONG           Key
+                );
+            */
+
+            // Check if IOSB needs to get checked or not
+
+            // STATUS_SUCCESS
+            _worker.set_reg(Register::Rax, 0);
+
+            // jmp back to ret address
+            _worker.set_reg(Register::Rip, return_address);
 
             return true;
         }
