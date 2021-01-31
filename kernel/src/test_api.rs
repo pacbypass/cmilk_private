@@ -17,6 +17,21 @@ x nt!NtQueryInformationFile;
 x nt!NtQueryAttributesFile; 
 .dump  /f C:\snaps\foxit_converttopdf.dmp
 
+EIP: 0x00000000011b6f13
+32.0: kd:x86> x nt!ntwritefile; 
+fffff802`5c271400          nt!NtWriteFile (void)
+32.0: kd:x86> x nt!ntreadfile; 
+fffff802`5c2ccac0          nt!NtReadFile (void)
+32.0: kd:x86> x nt!ntcreatefile; 
+fffff802`5c299000          nt!NtCreateFile (NtCreateFile)
+32.0: kd:x86> x ntdll!KiUserExceptionDispatch; 
+00007ff9`c1eb2f00          ntdll!KiUserExceptionDispatch (KiUserExceptionDispatch)
+32.0: kd:x86> x nt!NtQueryInformationFile; 
+fffff802`5c280e60          nt!NtQueryInformationFile (void)
+32.0: kd:x86> x nt!NtQueryAttributesFile; 
+fffff802`5c299c80          nt!NtQueryAttributesFile (NtQueryAttributesFile)
+
+
 
 
 */
@@ -39,10 +54,10 @@ pub fn fuzz() {
             // }
             print!("LETS FUZZ! 192.168.2.175:1911\n");
             *session = Some(Arc::new(
-                FuzzSession::from_falkdump("192.168.2.175:1911", "32bit.falkdump", |_worker| {})
+                FuzzSession::from_falkdump("192.168.2.175:1911", "foxit.falkdump", |_worker| {})
                     .timeout(1_000_000_000)
-                    .inject(inject)
-                    .bp_handler(bphandler),
+                    .inject(inject),
+                    //.bp_handler(bphandler),
             ));
         }
         session.as_ref().unwrap().clone()
@@ -61,7 +76,7 @@ pub fn fuzz() {
     loop {
         let _vmexit = worker.fuzz_case(&mut ());
         //first_run = 0;
-        //print!("vmexit {:#x?}\n", _vmexit);
+        print!("vmexit {:#x?}\n", _vmexit);
     }
 }
 //type BpHandler<'a> = fn(&mut Worker<'a>) -> bool;
@@ -71,7 +86,7 @@ fn inject(_worker: &mut Worker, _context: &mut dyn Any) {
 
     //injection point
     //let rbx = worker.reg(Register::Rbx);
-
+    print!("{:x}\n", _worker.reg(Register::Rip));
     //get and reset the imput
     /*let mut input = worker.fuzz_input.take().unwrap();
     input.clear();
@@ -108,16 +123,16 @@ fn inject(_worker: &mut Worker, _context: &mut dyn Any) {
 #[repr(u64)]
 enum BreakPoint {
     // Addy to CreateFile
-    CreateFile = 0x0,
+    CreateFile = 0xfffff8025c299000,
 
     // ReadFile addy
-    ReadFile = 0xe,
+    ReadFile = 0xfffff8025c2ccac0,
 
     // NtWriteFile
-    WriteFile = 0x235,
+    WriteFile = 0xfffff8025c271400,
 
     // End of test case, followed by an immediate exit.
-    CaseEnd = 0x34,
+    CaseEnd = 0xe,
     //SPROBUJ PUSCIC TYLKO Z READFILE I CREATEFILE i zobaczymy
 
     //sprawdz czy ntreadfile czyta caly plik tak non stop, czy czyta od danego momentu do ktoregos, czy ma jakis index albo cos

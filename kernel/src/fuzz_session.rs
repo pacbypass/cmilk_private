@@ -51,7 +51,7 @@ const GUEST_PROFILING: bool = false;
 
 /// If enabled, the guest is single stepped and all RIPs are logged during
 /// execution. This is incredibly slow and memory intensive, use for debugging.
-const GUEST_TRACING: bool = false;
+const GUEST_TRACING: bool = true;
 
 /// When set, the APIC will be monitored for writes. This is not done yet, do
 /// not use!
@@ -1112,8 +1112,8 @@ impl<'a> Worker<'a> {
                             let rip      = self.reg(Register::Rip);
                             //inject the input into the target program
                             self.read_virt_into(VirtAddr(rip), &mut input);
-                            print!("{}", self.resolve_module(rip));
-                            print!("{:x?}", input);
+                            print!("hit apic, most likely disk access. {}", self.resolve_module(rip));
+                            //print!("{:x?}", input);
                         }
                     }
                     
@@ -2294,7 +2294,6 @@ impl<'a> FuzzSession<'a> {
             filter_ars!(Register::LdtrAccessRights, Register::LdtrLimit);
             filter_ars!(Register::TrAccessRights, Register::TrLimit);
 
-            print!("guest regs");
         }
         
         
