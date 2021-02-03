@@ -1682,7 +1682,7 @@ impl Vm {
             
                 // NX enable
                 // Long mode active, enable
-                vmwrite(Vmcs::HostIa32Efer, (1 << 11) | (1 << 10) | (1 << 8) | (1<< 0));
+                vmwrite(Vmcs::HostIa32Efer, (1 << 11) | (1 << 10) | (1 << 8)| (1<< 0) ); //  SYSCALL ENABLE
 
                 // Set the VPID for the guest
                 vmwrite(Vmcs::Vpid, core!().id as u64 + 1);
