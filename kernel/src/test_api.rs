@@ -37,7 +37,6 @@ fffff800`2ae96c80          nt!NtQueryAttributesFile (NtQueryAttributesFile)
 */
 use lockcell::LockCell;
 
-const STATUS_INVALID_HANDLE: u32 = 0xC0000008;
 
 //const SIZE: usize = 20000;
 pub fn fuzz() {
@@ -92,16 +91,22 @@ fn inject(_worker: &mut Worker, _context: &mut dyn Any) {
     //print!("{:x}", _worker.reg(Register::Rip));
 
     //let mut input = worker.mutate().unwrap();
-    let mut input: [u8; 1] = [0xcc];
+    let input: [u8; 1] = [0xcc];
     
     //_worker.write_virt_from(VirtAddr(BreakPoint::NtCreateFile as u64), &input);
-   // _worker.write_virt_from(VirtAddr(BreakPoint::Crash as u64), &input);
+    _worker.write_virt_from(VirtAddr(BreakPoint::Crash as u64), &input);
     //_worker.write_virt_from(VirtAddr(BreakPoint::NtWriteFile as u64), &input);
     _worker.write_virt_from(VirtAddr(BreakPoint::X86usercreatefile as u64), &input);
     _worker.write_virt_from(VirtAddr(BreakPoint::X86usercreatefiletwo as u64), &input);
-
+    _worker.write_virt_from(VirtAddr(BreakPoint::X86userreadfile as u64), &input);
+    _worker.write_virt_from(VirtAddr(BreakPoint::X86userreadfiletwo as u64), &input);
     _worker.write_virt_from(VirtAddr(BreakPoint::X86userwritefile as u64), &input);
     _worker.write_virt_from(VirtAddr(BreakPoint::X86userwritefiletwo as u64), &input);
+    _worker.write_virt_from(VirtAddr(BreakPoint::X86userclosehandletwo as u64), &input);
+    _worker.write_virt_from(VirtAddr(BreakPoint::X86userclosehandle as u64), &input);
+    _worker.write_virt_from(VirtAddr(BreakPoint::X86usergetfilesizeex as u64), &input);
+    _worker.write_virt_from(VirtAddr(BreakPoint::X86usergetfilesizeextwo as u64), &input);
+    _worker.write_virt_from(VirtAddr(BreakPoint::End as u64), &input);
     //_worker.write_virt_from(VirtAddr(BreakPoint::NtReadFile as u64), &input); 
 
 
@@ -122,16 +127,16 @@ fn inject(_worker: &mut Worker, _context: &mut dyn Any) {
 #[repr(u64)]
 enum BreakPoint {
     // Addy to CreateFile
-    NtCreateFile = 0xfffff8002ae96000,
+    //NtCreateFile = 0xfffff8002ae96000,
 
     // ReadFile addy
-    NtReadFile = 0xfffff8002aec9ac0,
+    //NtReadFile = 0xfffff8002aec9ac0,
 
     // NtWriteFile
-    NtWriteFile = 0xfffff8002ae6e400,
+    //NtWriteFile = 0xfffff8002ae6e400,
 
     // End of test case, followed by an immediate exit.
-    Crash = 0x00007ffbba9b2f00,
+    Crash = 0x7ffbba9b2f00,
 
     X86usercreatefile = 0x756e3bb0,
     X86usercreatefiletwo = 0x76652460,
@@ -139,6 +144,16 @@ enum BreakPoint {
     X86userwritefile = 0x756e4020,
     X86userwritefiletwo = 0x766519a0,
 
+    X86userreadfile = 0x766522d0,
+    X86userreadfiletwo = 0x756e3f30,
+
+    X86userclosehandle = 0x76652a70,
+    X86userclosehandletwo = 0x756e3950,
+
+    X86usergetfilesizeex = 0x756e3de0,
+    X86usergetfilesizeextwo = 0x76661fd0,
+
+    End = 0xa16f64,
     //X86readfile = 0x756e3bb0,
     //X86writefile = 0x756e3bb0,
     
@@ -154,7 +169,7 @@ fn bphandler(
     _worker: &mut Worker,
     _lpf: &(CoverageRecord, VmExit, BasicRegisterState, u8),
 ) -> bool {
-    //print!("bp handler hit");
+    //print!("bp handler hit {:x}\n",_worker.reg(Register::Rip));
 
     let rip: BreakPoint = unsafe { core::mem::transmute(_worker.reg(Register::Rip)) };
 
@@ -195,10 +210,64 @@ fn bphandler(
             _worker.set_reg(Register::Rax, 0x696);
             return true;
         }
+        BreakPoint::X86usergetfilesizeex =>{
+            let addr = _worker.reg(Register::Rsp)+0x8; 
+            let base_large_integer = _worker
+                .read_virt::<u32>(VirtAddr(addr))
+                .expect("fugffff\n");
+                
+            let size = _worker.fuzz_input.as_ref().unwrap().len();
+
+            // file size
+            _worker.write_virt::<u32>(VirtAddr(base_large_integer as u64), size as u32);
+
+
+            _worker.mod_reg(Register::Rsp, |x| {
+                x+0xc
+            });
+            _worker.set_reg(Register::Rip, return_address as u64);
+            _worker.set_reg(Register::Rax, 1);
+            return true;
+        }
+        BreakPoint::X86usergetfilesizeextwo =>{
+            let addr = _worker.reg(Register::Rsp)+0x8; 
+            let base_large_integer = _worker
+                .read_virt::<u32>(VirtAddr(addr))
+                .expect("fugffff\n");
+
+            let size = _worker.fuzz_input.as_ref().unwrap().len();
+
+            // file size
+            _worker.write_virt::<u32>(VirtAddr(base_large_integer as u64), size as u32);
+
+
+            _worker.mod_reg(Register::Rsp, |x| {
+                x+0xc
+            });
+            _worker.set_reg(Register::Rip, return_address as u64);
+            _worker.set_reg(Register::Rax, 1);
+            return true;
+        }
+        BreakPoint::X86userclosehandle =>{
+            _worker.mod_reg(Register::Rsp, |x| {
+                x+0x8
+            });
+            _worker.set_reg(Register::Rip, return_address as u64);
+            _worker.set_reg(Register::Rax, 1);
+            return true;
+        }
+        BreakPoint::X86userclosehandletwo =>{
+            _worker.mod_reg(Register::Rsp, |x| {
+                x+0x8
+            });
+            _worker.set_reg(Register::Rip, return_address as u64);
+            _worker.set_reg(Register::Rax, 1);
+            return true;
+        }
         BreakPoint::X86userwritefile =>{
-            let addy_to_lpNumberOfBytesWritten = _worker.reg(Register::Rsp)+0x10; 
+            let addy_to_lp_number_of_bytes_written = _worker.reg(Register::Rsp)+0x10; 
             let write_back_addy = _worker
-                .read_virt::<u32>(VirtAddr(addy_to_lpNumberOfBytesWritten))
+                .read_virt::<u32>(VirtAddr(addy_to_lp_number_of_bytes_written))
                 .expect("fugffff\n");
 
             let len_addr = _worker.reg(Register::Rsp)+0xc; 
@@ -208,16 +277,16 @@ fn bphandler(
 
             _worker.write_virt::<u32>(VirtAddr(write_back_addy as u64), len);
             _worker.mod_reg(Register::Rsp, |x| {
-                x+0x20
+                x+0x18
             });
             _worker.set_reg(Register::Rip, return_address as u64);
             _worker.set_reg(Register::Rax, 0x696);
             return true;
         }
         BreakPoint::X86userwritefiletwo =>{
-            let addy_to_lpNumberOfBytesWritten = _worker.reg(Register::Rsp)+0x10; 
+            let addy_to_lp_number_of_bytes_written = _worker.reg(Register::Rsp)+0x10; 
             let write_back_addy = _worker
-                .read_virt::<u32>(VirtAddr(addy_to_lpNumberOfBytesWritten))
+                .read_virt::<u32>(VirtAddr(addy_to_lp_number_of_bytes_written))
                 .expect("fugffff\n");
 
             let len_addr = _worker.reg(Register::Rsp)+0xc; 
@@ -227,11 +296,94 @@ fn bphandler(
 
             _worker.write_virt::<u32>(VirtAddr(write_back_addy as u64), len);
             _worker.mod_reg(Register::Rsp, |x| {
-                x+0x20
+                x+0x18
             });
             _worker.set_reg(Register::Rip, return_address as u64);
-            _worker.set_reg(Register::Rax, 0x696);
+            _worker.set_reg(Register::Rax, 0x1);
             return true;
+        }
+        BreakPoint::X86userreadfile =>{
+            let addy_to_lp_number_of_bytes_written = _worker.reg(Register::Rsp)+0x10; 
+            let write_back_addy = _worker
+                .read_virt::<u32>(VirtAddr(addy_to_lp_number_of_bytes_written))
+                .expect("fugffff\n");
+
+            let len_addr = _worker.reg(Register::Rsp)+0xc; 
+            let len = _worker
+                .read_virt::<u32>(VirtAddr(len_addr))
+                .expect("fugffff\n");
+
+            let buf_addr = _worker.reg(Register::Rsp)+0x8; 
+            let buf = _worker
+                .read_virt::<u32>(VirtAddr(buf_addr))
+                .expect("fugffff\n");
+            
+
+            let input = _worker.fuzz_input.take().unwrap();
+
+            let slice = &input[..len as usize];
+            //let input = &slice[start_offset as usize..len as usize];
+
+            // write back the file to our nig nog
+            
+
+
+            _worker.write_virt_from(VirtAddr(buf as u64), slice);
+            _worker.write_virt::<u32>(VirtAddr(write_back_addy as u64), len).expect("peenis");
+            _worker.mod_reg(Register::Rsp, |x| {
+                x+0x18
+            });
+            _worker.set_reg(Register::Rip, return_address as u64);
+            _worker.set_reg(Register::Rax, 0x1);
+            _worker.fuzz_input = Some(input);
+            return true;
+        }
+        BreakPoint::X86userreadfiletwo =>{
+            let addy_to_lp_number_of_bytes_written = _worker.reg(Register::Rsp)+0x10; 
+            let write_back_addy = _worker
+                .read_virt::<u32>(VirtAddr(addy_to_lp_number_of_bytes_written))
+                .expect("fugffff\n");
+
+            let len_addr = _worker.reg(Register::Rsp)+0xc; 
+            let len = _worker
+                .read_virt::<u32>(VirtAddr(len_addr))
+                .expect("fugffff\n");
+
+            let buf_addr = _worker.reg(Register::Rsp)+0x8; 
+            let buf = _worker
+                .read_virt::<u32>(VirtAddr(buf_addr))
+                .expect("fugffff\n");
+            
+
+            let input = _worker.fuzz_input.take().unwrap();
+
+            let slice = &input[..len as usize];
+            //let input = &slice[start_offset as usize..len as usize];
+
+            // write back the file to our nig nog
+            
+
+
+            _worker.write_virt_from(VirtAddr(buf as u64), slice);
+            _worker.write_virt::<u32>(VirtAddr(write_back_addy as u64), len).expect("peenis");
+            _worker.mod_reg(Register::Rsp, |x| {
+                x+0x18
+            });
+            _worker.set_reg(Register::Rip, return_address as u64);
+            _worker.set_reg(Register::Rax, 0x1);
+            _worker.fuzz_input = Some(input);
+            return true;
+        }
+        BreakPoint::Crash => {
+            print!("crashed\n");
+            return false;
+        }
+        BreakPoint::End =>{
+            //print!("case finished\n");
+            return false;
+        }
+        _ => {
+            panic!("bad ptr addy: {:x}\n", _worker.reg(Register::Rip))
         }
         // BreakPoint::NtReadFile => {
         //     /*
@@ -421,12 +573,6 @@ fn bphandler(
 
         //     return true;
         // }
-        BreakPoint::Crash => {
-            print!("crashed\n");
-            return false;
-        }
-        _ => {
-            panic!("bad ptr addy: {}\n", _worker.reg(Register::Rip))
-        }
+        
     }
 }

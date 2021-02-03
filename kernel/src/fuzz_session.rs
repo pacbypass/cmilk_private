@@ -51,7 +51,7 @@ const GUEST_PROFILING: bool = false;
 
 /// If enabled, the guest is single stepped and all RIPs are logged during
 /// execution. This is incredibly slow and memory intensive, use for debugging.
-const GUEST_TRACING: bool = true;
+const GUEST_TRACING: bool = false;
 
 /// When set, the APIC will be monitored for writes. This is not done yet, do
 /// not use!
