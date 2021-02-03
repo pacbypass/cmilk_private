@@ -98,6 +98,10 @@ fn inject(_worker: &mut Worker, _context: &mut dyn Any) {
    // _worker.write_virt_from(VirtAddr(BreakPoint::Crash as u64), &input);
     //_worker.write_virt_from(VirtAddr(BreakPoint::NtWriteFile as u64), &input);
     _worker.write_virt_from(VirtAddr(BreakPoint::X86usercreatefile as u64), &input);
+    _worker.write_virt_from(VirtAddr(BreakPoint::X86usercreatefiletwo as u64), &input);
+
+    _worker.write_virt_from(VirtAddr(BreakPoint::X86userwritefile as u64), &input);
+    _worker.write_virt_from(VirtAddr(BreakPoint::X86userwritefiletwo as u64), &input);
     //_worker.write_virt_from(VirtAddr(BreakPoint::NtReadFile as u64), &input); 
 
 
