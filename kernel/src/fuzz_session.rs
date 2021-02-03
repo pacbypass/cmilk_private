@@ -1164,7 +1164,7 @@ impl<'a> Worker<'a> {
                     //print!("BREAKPOINT HIT NIGGA WOOHOO\n");
                     //print!("{}", rip);
                     if let Some(breakpoint_handler) = session.breakpoint_handler {
-                        if breakpoint_handler(self, last_page_fault.as_ref().unwrap() ) {
+                        if breakpoint_handler(self, last_page_fault.as_ref().unwrap(), &session ) {
                             continue 'vm_loop;
                         }
                     }
@@ -2008,7 +2008,7 @@ type InjectCallback<'a> = fn(&mut Worker<'a>, &mut dyn Any);
 
 type VmExitFilter<'a> = fn(&mut Worker<'a>, &VmExit) -> bool;
 //type BpHandler<'a> = fn(&mut Worker<'a>) -> bool;
-type BpHandler<'a> = fn(&mut Worker<'a>, &(CoverageRecord, VmExit, BasicRegisterState, u8)) -> bool;
+type BpHandler<'a> = fn(&mut Worker<'a>, &(CoverageRecord, VmExit, BasicRegisterState, u8), &FuzzSession) -> bool;
 /// A session for multiple workers to fuzz a shared job
 pub struct FuzzSession<'a> {
     /// Master VM state

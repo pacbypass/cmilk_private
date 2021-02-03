@@ -168,6 +168,7 @@ enum BreakPoint {
 fn bphandler(
     _worker: &mut Worker,
     _lpf: &(CoverageRecord, VmExit, BasicRegisterState, u8),
+    _session: &FuzzSession
 ) -> bool {
     //print!("bp handler hit {:x}\n",_worker.reg(Register::Rip));
 
@@ -375,7 +376,8 @@ fn bphandler(
             return true;
         }
         BreakPoint::Crash => {
-            print!("crashed\n");
+            //print!("crashed\n");
+            _worker.report_crash(_session, &_lpf.0, &_lpf.1,&_lpf.2,_lpf.3);
             return false;
         }
         BreakPoint::End =>{
