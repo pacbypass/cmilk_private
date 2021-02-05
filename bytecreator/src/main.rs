@@ -1,5 +1,5 @@
 
 fn main() {
-    let minidump = std::fs::read("python.jpg").unwrap();
+    let minidump = std::fs::read("PoC.gif").unwrap();
     print!("{:#x?}", minidump);
 }

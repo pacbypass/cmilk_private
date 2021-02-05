@@ -80,7 +80,7 @@ pub fn fuzz() {
     loop {
         let _vmexit = worker.fuzz_case(&mut ());
         //first_run = 0;
-        //print!("vmexit {:#x?}\n", _vmexit);
+        print!("vmexit {:#x?}\n", _vmexit);
     }
 }
 //type BpHandler<'a> = fn(&mut Worker<'a>) -> bool;
@@ -102,22 +102,22 @@ fn inject(_worker: &mut Worker, _context: &mut dyn Any) {
     _worker.write_virt_from(VirtAddr(BreakPoint::Crash as u64), &input);
     //_worker.write_virt_from(VirtAddr(BreakPoint::NtWriteFile as u64), &input);
     _worker.write_virt_from(VirtAddr(BreakPoint::X86usercreatefile as u64), &input);
-    _worker.write_virt_from(VirtAddr(BreakPoint::X86usercreatefiletwo as u64), &input);
+    //_worker.write_virt_from(VirtAddr(BreakPoint::X86usercreatefiletwo as u64), &input);
     _worker.write_virt_from(VirtAddr(BreakPoint::X86userreadfile as u64), &input);
-    _worker.write_virt_from(VirtAddr(BreakPoint::X86userreadfiletwo as u64), &input);
+    //_worker.write_virt_from(VirtAddr(BreakPoint::X86userreadfiletwo as u64), &input);
     _worker.write_virt_from(VirtAddr(BreakPoint::X86userwritefile as u64), &input);
-    _worker.write_virt_from(VirtAddr(BreakPoint::X86userwritefiletwo as u64), &input);
-    _worker.write_virt_from(VirtAddr(BreakPoint::X86userclosehandletwo as u64), &input);
+    //_worker.write_virt_from(VirtAddr(BreakPoint::X86userwritefiletwo as u64), &input);
+    //_worker.write_virt_from(VirtAddr(BreakPoint::X86userclosehandletwo as u64), &input);
     _worker.write_virt_from(VirtAddr(BreakPoint::X86userclosehandle as u64), &input);
     _worker.write_virt_from(VirtAddr(BreakPoint::X86usergetfilesizeex as u64), &input);
-    _worker.write_virt_from(VirtAddr(BreakPoint::X86usergetfilesizeextwo as u64), &input);
+    //_worker.write_virt_from(VirtAddr(BreakPoint::X86usergetfilesizeextwo as u64), &input);
     _worker.write_virt_from(VirtAddr(BreakPoint::End as u64), &input);
     _worker.write_virt_from(VirtAddr(BreakPoint::X86usersetfilesizepointerex as u64), &input);
-    _worker.write_virt_from(VirtAddr(BreakPoint::X86usersetfilesizepointerextwo as u64), &input);
-    _worker.write_virt_from(VirtAddr(BreakPoint::X86userdeletefiletwo as u64), &input);
+    //_worker.write_virt_from(VirtAddr(BreakPoint::X86usersetfilesizepointerextwo as u64), &input);
+    //_worker.write_virt_from(VirtAddr(BreakPoint::X86userdeletefiletwo as u64), &input);
     _worker.write_virt_from(VirtAddr(BreakPoint::X86userdeletefile as u64), &input); // X86userFlushFileBufferstwo
 
-    _worker.write_virt_from(VirtAddr(BreakPoint::X86userFlushFileBufferstwo as u64), &input); 
+    //_worker.write_virt_from(VirtAddr(BreakPoint::X86userFlushFileBufferstwo as u64), &input); 
     _worker.write_virt_from(VirtAddr(BreakPoint::X86userFlushFileBuffers as u64), &input); 
 
     //_worker.write_virt_from(VirtAddr(BreakPoint::NtReadFile as u64), &input); 
@@ -133,548 +133,117 @@ fn inject(_worker: &mut Worker, _context: &mut dyn Any) {
 
     let input:Vec<u8> = vec![
         0xff,
-        0xd8,
-        0xff,
-        0xe0,
-        0x0,
-        0x10,
-        0x4a,
-        0x46,
-        0x49,
-        0x46,
-        0x0,
-        0x1,
-        0x1,
-        0x1,
-        0x0,
-        0x1,
-        0x0,
-        0x1,
-        0x0,
-        0x0,
-        0xff,
-        0xdb,
-        0x0,
-        0x43,
-        0x0,
-        0x3,
-        0x2,
-        0x2,
-        0x2,
-        0x2,
-        0x2,
-        0x3,
-        0x2,
-        0x2,
-        0x2,
-        0x3,
-        0x3,
-        0x3,
-        0x3,
-        0x4,
-        0x6,
-        0x4,
-        0x4,
-        0x4,
-        0x4,
-        0x4,
-        0x8,
-        0x6,
-        0x6,
-        0x5,
-        0x6,
-        0x9,
-        0x8,
-        0xa,
-        0xa,
-        0x9,
-        0x8,
-        0x9,
-        0x9,
-        0xa,
-        0xc,
-        0xf,
-        0xc,
-        0xa,
-        0xb,
-        0xe,
-        0xb,
-        0x9,
-        0x9,
-        0xd,
-        0x11,
-        0xd,
-        0xe,
-        0xf,
-        0x10,
-        0x10,
-        0x11,
-        0x10,
-        0xa,
-        0xc,
-        0x12,
-        0x13,
-        0x12,
-        0x10,
-        0x13,
-        0xf,
-        0x10,
-        0x10,
-        0x10,
-        0xff,
-        0xdb,
-        0x0,
-        0x43,
-        0x1,
-        0x3,
-        0x3,
-        0x3,
-        0x4,
-        0x3,
-        0x4,
-        0x8,
-        0x4,
-        0x4,
-        0x8,
-        0x10,
-        0xb,
-        0x9,
-        0xb,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0xff,
-        0xc0,
-        0x0,
-        0x11,
-        0x8,
-        0x0,
-        0x10,
-        0x0,
-        0x10,
-        0x3,
-        0x1,
-        0x22,
-        0x0,
-        0x2,
-        0x11,
-        0x1,
-        0x3,
-        0x11,
-        0x1,
-        0xff,
-        0xc4,
-        0x0,
-        0x16,
-        0x0,
-        0x1,
-        0x1,
-        0x1,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x7,
-        0x4,
-        0x5,
-        0xff,
-        0xc4,
-        0x0,
-        0x24,
-        0x10,
-        0x0,
-        0x1,
-        0x4,
-        0x1,
-        0x4,
-        0x2,
-        0x2,
-        0x3,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x1,
-        0x2,
-        0x3,
-        0x4,
-        0x6,
-        0x5,
-        0x7,
-        0x8,
-        0x12,
-        0x13,
-        0x11,
-        0x22,
-        0x0,
-        0x14,
-        0x9,
-        0x31,
-        0x32,
-        0xff,
-        0xc4,
-        0x0,
-        0x15,
-        0x1,
-        0x1,
-        0x1,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x6,
-        0xff,
-        0xc4,
-        0x0,
-        0x23,
-        0x11,
-        0x0,
-        0x1,
-        0x2,
-        0x5,
-        0x3,
-        0x5,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x1,
-        0x2,
-        0x11,
-        0x3,
-        0x4,
-        0x5,
-        0x6,
-        0x21,
-        0x0,
-        0x12,
-        0x31,
-        0x15,
-        0x16,
-        0x61,
-        0x81,
-        0xe1,
-        0xff,
-        0xda,
-        0x0,
-        0xc,
-        0x3,
-        0x1,
-        0x0,
-        0x2,
-        0x11,
-        0x3,
-        0x11,
-        0x0,
-        0x3f,
-        0x0,
-        0x14,
-        0xa6,
-        0xd2,
-        0x6a,
-        0x1b,
-        0x73,
-        0xc1,
-        0xe6,
-        0x13,
-        0x12,
-        0xd4,
-        0x95,
-        0x1c,
-        0xf3,
-        0x11,
-        0x63,
-        0xe4,
-        0x25,
-        0x65,
-        0xbe,
-        0xba,
-        0x5a,
-        0xec,
-        0x69,
-        0x45,
-        0x40,
-        0xb1,
-        0xe5,
-        0x20,
-        0xb2,
-        0x54,
-        0xa5,
-        0x1f,
-        0xd2,
-        0xca,
-        0xb8,
-        0xfa,
-        0xf2,
-        0x20,
-        0xab,
-        0x96,
-        0x3d,
-        0x97,
-        0x6c,
-        0x93,
-        0x35,
-        0xe6,
-        0x9b,
-        0x77,
-        0xd7,
-        0xe6,
-        0x6d,
-        0xa7,
-        0x17,
-        0x81,
-        0xa5,
-        0x57,
-        0x1c,
-        0x7f,
-        0x1c,
-        0xea,
-        0x71,
-        0xe2,
-        0x4b,
-        0x39,
-        0xd7,
-        0xe3,
-        0x22,
-        0x53,
-        0xf2,
-        0x1a,
-        0x69,
-        0xde,
-        0xd4,
-        0x71,
-        0x4a,
-        0x38,
-        0xb4,
-        0x82,
-        0xe8,
-        0x4b,
-        0x89,
-        0x2a,
-        0x71,
-        0x69,
-        0x1e,
-        0xcd,
-        0x2d,
-        0x21,
-        0x3b,
-        0xf1,
-        0xef,
-        0xb9,
-        0x1a,
-        0x74,
-        0xac,
-        0xee,
-        0xa1,
-        0x5a,
-        0x75,
-        0x8e,
-        0xd5,
-        0x48,
-        0xac,
-        0x65,
-        0x5b,
-        0x85,
-        0x8b,
-        0x81,
-        0x85,
-        0x7b,
-        0x21,
-        0x29,
-        0x98,
-        0x67,
-        0xa9,
-        0x6b,
-        0x94,
-        0xb9,
-        0x49,
-        0x65,
         0x4f,
-        0xb9,
-        0xc8,
-        0x85,
-        0x29,
-        0x11,
-        0x4b,
-        0x81,
-        0x2a,
-        0xf0,
-        0x7a,
-        0xd9,
-        0xf2,
-        0x3c,
-        0x80,
-        0x7e,
-        0x55,
-        0xbe,
-        0xd,
-        0xf6,
-        0x62,
-        0xa1,
-        0x40,
-        0xcc,
-        0xe8,
-        0xe6,
-        0x9a,
-        0x3d,
-        0x5c,
-        0xb7,
-        0x43,
-        0xb3,
-        0xd7,
-        0x7a,
-        0x65,
-        0x58,
-        0xb1,
-        0xd9,
-        0x51,
-        0x21,
-        0x88,
-        0xbf,
-        0x64,
-        0xb8,
-        0xd3,
-        0xf1,
-        0xc3,
-        0x68,
-        0x4,
-        0x29,
-        0xc0,
-        0xd0,
-        0xfe,
-        0xbb,
-        0x3c,
-        0x2,
-        0xe0,
-        0x3c,
-        0x54,
-        0x7,
-        0xb4,
-        0xbd,
-        0xd9,
-        0x7b,
-        0x54,
-        0xe6,
-        0x27,
-        0xfb,
-        0x6e,
-        0xdf,
-        0x94,
-        0x60,
-        0x14,
-        0x82,
-        0x62,
-        0x13,
-        0x8d,
-        0xb8,
-        0x52,
-        0x98,
-        0x28,
-        0x37,
-        0x5,
-        0x89,
-        0x72,
-        0x79,
-        0x60,
-        0xe4,
-        0x32,
-        0x89,
-        0x6f,
-        0xc3,
-        0x82,
-        0x8e,
-        0xa7,
-        0x52,
-        0x8c,
-        0xea,
-        0x20,
-        0x8d,
-        0xbe,
-        0x78,
-        0x19,
-        0x1f,
-        0x7,
-        0xad,
-        0x7f,
         0xff,
-        0xd9,
+        0x51,
+        0x0,
+        0x29,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x1,
+        0x0,
+        0x0,
+        0x0,
+        0xfc,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0xff,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x93,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x1,
+        0x0,
+        0x1,
+        0x1,
+        0x0,
+        0x0,
+        0x0,
+        0xc,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0xff,
+        0x51,
+        0x0,
+        0x29,
+        0x0,
+        0x0,
+        0x0,
+        0x4a,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0xfc,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x1,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x93,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x1,
+        0x0,
+        0x1,
+        0x1,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
     ];
     // save the input back
     _worker.fuzz_input = Some(input);
@@ -698,29 +267,29 @@ enum BreakPoint {
 
     //Crash = 0x7ffbba9b2f00,
     Crash = 0xfffff8002a9d5f73,
-    X86usercreatefile = 0x756e3bb0,
-    X86usercreatefiletwo = 0x76652460,
+    X86usercreatefile = 0x76652460,
+    //X86usercreatefiletwo = 0x756e3bb0,
 
-    X86userwritefile = 0x756e4020,
-    X86userwritefiletwo = 0x766519a0,
+    X86userwritefile = 0x766519a0,
+    //X86userwritefiletwo = 0x756e4020,
 
     X86userreadfile = 0x766522d0,
-    X86userreadfiletwo = 0x756e3f30,
+    //X86userreadfiletwo = 0x756e3f30,
 
     X86userclosehandle = 0x76652a70,
-    X86userclosehandletwo = 0x756e3950,
+    //X86userclosehandletwo = 0x756e3950,
 
-    X86usergetfilesizeex = 0x756e3de0,
-    X86usergetfilesizeextwo = 0x76661fd0,
+    X86usergetfilesizeex = 0x76661fd0,
+    //X86usergetfilesizeextwo = 0x756e3de0,
 
-    X86usersetfilesizepointerex = 0x756e3fd0,
-    X86usersetfilesizepointerextwo = 0x7665ea10 ,
+    X86usersetfilesizepointerex = 0x7665ea10,
+    //X86usersetfilesizepointerextwo = 0x756e3fd0 ,
 
-    X86userdeletefile = 0x756e3be0 ,
-    X86userdeletefiletwo = 0x76650570 ,
+    X86userdeletefile = 0x76650570 ,
+    //X86userdeletefiletwo = 0x756e3be0 ,
 
-    X86userFlushFileBuffers = 0x756e3d10 ,
-    X86userFlushFileBufferstwo = 0x76662940 ,
+    X86userFlushFileBuffers = 0x76662940 ,
+    //X86userFlushFileBufferstwo = 0x756e3d10 ,
 
     End = 0xa16f64,
     //X86readfile = 0x756e3bb0,
@@ -764,33 +333,9 @@ fn bphandler(
             _worker.set_reg(Register::Rax, 1);
             return true;
         }
-        BreakPoint::X86userFlushFileBufferstwo => {
-            _worker.mod_reg(Register::Rsp, |x| {
-                x+0x8
-            });
-            _worker.set_reg(Register::Rip, return_address as u64);
-            _worker.set_reg(Register::Rax, 1);
-            return true;
-        }
-        BreakPoint::X86userdeletefiletwo => {
-            _worker.mod_reg(Register::Rsp, |x| {
-                x+0x8
-            });
-            _worker.set_reg(Register::Rip, return_address as u64);
-            _worker.set_reg(Register::Rax, 1);
-            return true;
-        }
         BreakPoint::X86userdeletefile => {
             _worker.mod_reg(Register::Rsp, |x| {
                 x+0x8
-            });
-            _worker.set_reg(Register::Rip, return_address as u64);
-            _worker.set_reg(Register::Rax, 1);
-            return true;
-        }
-        BreakPoint::X86usersetfilesizepointerextwo =>{
-            _worker.mod_reg(Register::Rsp, |x| {
-                x+0x18
             });
             _worker.set_reg(Register::Rip, return_address as u64);
             _worker.set_reg(Register::Rax, 1);
@@ -802,14 +347,6 @@ fn bphandler(
             });
             _worker.set_reg(Register::Rip, return_address as u64);
             _worker.set_reg(Register::Rax, 1);
-            return true;
-        }
-        BreakPoint::X86usercreatefiletwo =>{
-            _worker.mod_reg(Register::Rsp, |x| {
-                x+0x20
-            });
-            _worker.set_reg(Register::Rip, return_address as u64);
-            _worker.set_reg(Register::Rax, 0x696);
             return true;
         }
         BreakPoint::X86usercreatefile =>{
@@ -847,26 +384,6 @@ fn bphandler(
             // file size
             _worker.write_virt::<u64>(VirtAddr(base_large_integer as u64), size as u64);
 
-
-            _worker.mod_reg(Register::Rsp, |x| {
-                x+0xc
-            });
-            _worker.set_reg(Register::Rip, return_address as u64);
-            _worker.set_reg(Register::Rax, 1);
-            return true;
-        }
-        BreakPoint::X86usergetfilesizeextwo =>{
-            let addr = rsp+0x8; 
-            let base_large_integer = _worker
-                .read_virt::<u32>(VirtAddr(addr))
-                .expect("fugffff\n");
-
-            let size = _worker.fuzz_input.as_ref().unwrap().len();
-
-            // file size
-            _worker.write_virt::<u32>(VirtAddr(base_large_integer as u64), size as u32);
-
-
             _worker.mod_reg(Register::Rsp, |x| {
                 x+0xc
             });
@@ -882,16 +399,8 @@ fn bphandler(
             _worker.set_reg(Register::Rax, 1);
             return true;
         }
-        BreakPoint::X86userclosehandletwo =>{
-            _worker.mod_reg(Register::Rsp, |x| {
-                x+0x8
-            });
-            _worker.set_reg(Register::Rip, return_address as u64);
-            _worker.set_reg(Register::Rax, 1);
-            return true;
-        }
         BreakPoint::X86userwritefile =>{
-            return false;
+            //return false;
             print!("writefile X86userwritefile");
             let addy_to_lp_number_of_bytes_written = rsp+0x10; 
             let write_back_addy = _worker
@@ -908,33 +417,9 @@ fn bphandler(
                 x+0x18
             });
             _worker.set_reg(Register::Rip, return_address as u64);
-            _worker.set_reg(Register::Rax, 0x696);
+            _worker.set_reg(Register::Rax, 1);
             return true;
         }
-        BreakPoint::X86userwritefiletwo =>{
-            return false;
-            print!("writefile X86userwritefiletwo");
-            let addy_to_lp_number_of_bytes_written = rsp+0x10; 
-            let write_back_addy = _worker
-                .read_virt::<u32>(VirtAddr(addy_to_lp_number_of_bytes_written))
-                .expect("fugffff\n");
-
-            let len_addr = rsp+0xc; 
-            let len = _worker
-                .read_virt::<u32>(VirtAddr(len_addr))
-                .expect("fugffff\n");
-
-            _worker.write_virt::<u32>(VirtAddr(write_back_addy as u64), len);
-            _worker.mod_reg(Register::Rsp, |x| {
-                x+0x18
-            });
-            _worker.set_reg(Register::Rip, return_address as u64);
-            _worker.set_reg(Register::Rax, 0x1);
-            return true;
-        }
-        // READ FILE SHOULD MOVE THE FILE POINTER AROUND
-        // set _OVERLAPPED 
-        // 
         BreakPoint::X86userreadfile =>{
             let addy_to_lp_number_of_bytes_written = rsp+0x10; 
             let write_back_addy = _worker
@@ -974,46 +459,6 @@ fn bphandler(
             _worker.fuzz_input = Some(input);
             return true;
         }
-        BreakPoint::X86userreadfiletwo =>{
-            let addy_to_lp_number_of_bytes_written = rsp+0x10; 
-            let write_back_addy = _worker
-                .read_virt::<u32>(VirtAddr(addy_to_lp_number_of_bytes_written))
-                .expect("fugffff\n");
-
-                let len_addr = rsp+0xc; 
-                let len = _worker
-                    .read_virt::<u32>(VirtAddr(len_addr))
-                    .expect("fugffff\n");
-    
-                //print!("len: {}\n", len);
-    
-                let buf_addr = rsp+0x8; 
-                let buf = _worker
-                    .read_virt::<u32>(VirtAddr(buf_addr))
-                    .expect("fugffff\n");
-                //print!("buf_addr {:#x}\n", buf_addr);
-                
-    
-
-            let input = _worker.fuzz_input.take().unwrap();
-
-            let slice = &input[..len as usize];
-            //let input = &slice[start_offset as usize..len as usize];
-
-            // write back the file to our nig nog
-            
-
-
-            _worker.write_virt_from(VirtAddr(buf as u64), slice);
-            _worker.write_virt::<u32>(VirtAddr(write_back_addy as u64), len).expect("peenis");
-            _worker.mod_reg(Register::Rsp, |x| {
-                x+0x18
-            });
-            _worker.set_reg(Register::Rip, return_address as u64);
-            _worker.set_reg(Register::Rax, 0x1);
-            _worker.fuzz_input = Some(input);
-            return true;
-        }
         BreakPoint::Crash => {
             print!("crashed\n");
             _worker.report_crash(_session, &_lpf.0, &_lpf.1,&_lpf.2,_lpf.3);
@@ -1023,9 +468,9 @@ fn bphandler(
             //print!("case finished\n");
             return false;
         }
-        _ => {
-            panic!("bad ptr addy: {:x}\n", _worker.reg(Register::Rip))
-        }
+        // _ => {
+        //     panic!("bad ptr addy: {:x}\n", _worker.reg(Register::Rip))
+        // }
         // BreakPoint::NtReadFile => {
         //     /*
         //     3: kd> r

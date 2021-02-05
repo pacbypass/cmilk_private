@@ -1111,10 +1111,10 @@ impl<'a> Worker<'a> {
                     }else{
                         //print!("apic\n");
                         if addr.0 == 0xfee0_0300{
-                            let mut input: [u8; 60] = [0; 60];
+                            //let mut input: [u8; 60] = [0; 60];
                             let rip      = self.reg(Register::Rip);
                             //inject the input into the target program
-                            self.read_virt_into(VirtAddr(rip), &mut input);
+                            //self.read_virt_into(VirtAddr(rip), &mut input);
                             print!("hit apic, most likely disk access. {}", self.resolve_module(rip));
                             //print!("{:x?}", input);
                         }
@@ -1194,41 +1194,7 @@ impl<'a> Worker<'a> {
                                       cpl);
                     //break 'vm_loop vmexit;
                 }
-                VmExit::Io { inst_len, gpr } =>{
-                    //print!("io: {}\n", inst_len);
-                    //let mut input: [u8; 60] = [0; 60];
-                    //let rip      = self.reg(Register::Rip);
-                    // inject the input into the target program
-                    //self.read_virt_into(VirtAddr(rip), &mut input);
-                    //print!("{}\n", self.resolve_module(rip));
-                    //print!("{:x?}\n", input);
-                    
-                    let reg = match gpr {
-                        0 => (Register::Rax),
-                        1 => (Register::Rcx),
-                        2 => (Register::Rdx),
-                        3 => (Register::Rbx),
-                        4 => (Register::Rsp),
-                        5 => (Register::Rbp),
-                        6 => (Register::Rsi),
-                        7 => (Register::Rdi),
-                        8 => (Register::R8),
-                        9 => (Register::R9),
-                       10 => (Register::R10),
-                       11 => (Register::R11),
-                       12 => (Register::R12),
-                       13 => (Register::R13),
-                       14 => (Register::R14),
-                       15 => Register::R15,
-                       _ => panic!("Invalid GPR for write CR"),
-                   };
-                   //print!("{}", gpr);
-                   self.set_reg(reg, 0);
-                   
-                   let rip = self.reg(Register::Rip);
-                   self.set_reg(Register::Rip, rip.wrapping_add(inst_len));
-                   continue 'vm_loop;
-                }
+               
                 VmExit::ReadMsr { inst_len } => {
                     //print!("msrread\n");
                     // Get the MSR ID we're reading
