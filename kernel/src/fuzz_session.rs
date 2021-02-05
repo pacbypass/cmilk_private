@@ -1011,7 +1011,10 @@ impl<'a> Worker<'a> {
             let (vmexit, vm_cycles) = self.backing.vm.run();
             self.stats.vm_exits  += 1;
             self.stats.vm_cycles += vm_cycles;
-
+            // if (vmexit != VmExit::MonitorTrap){
+            //     print!("vmexit: {:#x?}\n", vmexit);
+            // }
+            
             match vmexit {
                 VmExit::CpuId {inst_len} =>{
                     

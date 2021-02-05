@@ -555,21 +555,21 @@ fn handle_client(stream: TcpStream,
             }
             ServerMessage::Trace(trace) => {
                 // Create the traces directory
-                // std::fs::create_dir_all("traces").unwrap();
+                std::fs::create_dir_all("traces").unwrap();
 
-                // {
-                //     // Get a unique trace file ID
-                //     let trace_id = context.trace_id
-                //         .fetch_add(1, Ordering::Relaxed);
+                {
+                    // Get a unique trace file ID
+                    let trace_id = context.trace_id
+                        .fetch_add(1, Ordering::Relaxed);
 
-                //     // Create the trace file
-                //     let mut fd = File::create(Path::new("traces")
-                //         .join(&format!("trace_{:016x}", trace_id)))?;
+                    // Create the trace file
+                    let mut fd = File::create(Path::new("traces")
+                        .join(&format!("trace_{:016x}", trace_id)))?;
 
-                //     for rip in trace.iter() {
-                //         write!(fd, "{:#018x}\n", rip)?;
-                //     }
-                // }
+                    for rip in trace.iter() {
+                        write!(fd, "{:#018x}\n", rip)?;
+                    }
+                }
             }
             _ => panic!("Unhandled packet\n"),
         }

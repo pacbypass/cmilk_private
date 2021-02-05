@@ -739,14 +739,14 @@ fn bphandler(
     _lpf: &(CoverageRecord, VmExit, BasicRegisterState, u8),
     _session: &FuzzSession
 ) -> bool {
-    print!("bp handler hit {:x}\n",_worker.reg(Register::Rip));
+    //print!("bp handler hit {:x}\n",_worker.reg(Register::Rip));
     if _worker.reg(Register::Rip) == BreakPoint::Crash as u64{
-        //print!("crashed {}\n", _lpf.2);
+        print!("crashed {}\n", _lpf.2);
         _worker.report_crash(_session, &_lpf.0, &_lpf.1,&_lpf.2,_lpf.3);
         return false;
     }
     if _worker.reg(Register::Rip) == BreakPoint::End as u64{
-        //print!("ended\n");
+        print!("ended\n");
         return false;
     }
     let rip: BreakPoint = unsafe { core::mem::transmute(_worker.reg(Register::Rip)) };
@@ -837,7 +837,7 @@ fn bphandler(
             return true;
         }
         BreakPoint::X86usergetfilesizeex =>{
-            let addr = _worker.reg(Register::Rsp)+0x8; 
+            let addr = rsp+0x8; 
             let base_large_integer = _worker
                 .read_virt::<u32>(VirtAddr(addr))
                 .expect("fugffff\n");
@@ -856,7 +856,7 @@ fn bphandler(
             return true;
         }
         BreakPoint::X86usergetfilesizeextwo =>{
-            let addr = _worker.reg(Register::Rsp)+0x8; 
+            let addr = rsp+0x8; 
             let base_large_integer = _worker
                 .read_virt::<u32>(VirtAddr(addr))
                 .expect("fugffff\n");
@@ -891,12 +891,14 @@ fn bphandler(
             return true;
         }
         BreakPoint::X86userwritefile =>{
-            let addy_to_lp_number_of_bytes_written = _worker.reg(Register::Rsp)+0x10; 
+            return false;
+            print!("writefile X86userwritefile");
+            let addy_to_lp_number_of_bytes_written = rsp+0x10; 
             let write_back_addy = _worker
                 .read_virt::<u32>(VirtAddr(addy_to_lp_number_of_bytes_written))
                 .expect("fugffff\n");
 
-            let len_addr = _worker.reg(Register::Rsp)+0xc; 
+            let len_addr = rsp+0xc; 
             let len = _worker
                 .read_virt::<u32>(VirtAddr(len_addr))
                 .expect("fugffff\n");
@@ -910,12 +912,14 @@ fn bphandler(
             return true;
         }
         BreakPoint::X86userwritefiletwo =>{
-            let addy_to_lp_number_of_bytes_written = _worker.reg(Register::Rsp)+0x10; 
+            return false;
+            print!("writefile X86userwritefiletwo");
+            let addy_to_lp_number_of_bytes_written = rsp+0x10; 
             let write_back_addy = _worker
                 .read_virt::<u32>(VirtAddr(addy_to_lp_number_of_bytes_written))
                 .expect("fugffff\n");
 
-            let len_addr = _worker.reg(Register::Rsp)+0xc; 
+            let len_addr = rsp+0xc; 
             let len = _worker
                 .read_virt::<u32>(VirtAddr(len_addr))
                 .expect("fugffff\n");
@@ -932,23 +936,23 @@ fn bphandler(
         // set _OVERLAPPED 
         // 
         BreakPoint::X86userreadfile =>{
-            let addy_to_lp_number_of_bytes_written = _worker.reg(Register::Rsp)+0x10; 
+            let addy_to_lp_number_of_bytes_written = rsp+0x10; 
             let write_back_addy = _worker
                 .read_virt::<u32>(VirtAddr(addy_to_lp_number_of_bytes_written))
                 .expect("fugffff\n");
 
-            let len_addr = _worker.reg(Register::Rsp)+0xc; 
+            let len_addr = rsp+0xc; 
             let len = _worker
                 .read_virt::<u32>(VirtAddr(len_addr))
                 .expect("fugffff\n");
 
-            print!("len: {}\n", len);
+            //print!("len: {}\n", len);
 
-            let buf_addr = _worker.reg(Register::Rsp)+0x8; 
+            let buf_addr = rsp+0x8; 
             let buf = _worker
                 .read_virt::<u32>(VirtAddr(buf_addr))
                 .expect("fugffff\n");
-            print!("buf_addr {:#x}\n", buf_addr);
+            //print!("buf_addr {:#x}\n", buf_addr);
             
 
             let input = _worker.fuzz_input.take().unwrap();
@@ -971,23 +975,23 @@ fn bphandler(
             return true;
         }
         BreakPoint::X86userreadfiletwo =>{
-            let addy_to_lp_number_of_bytes_written = _worker.reg(Register::Rsp)+0x10; 
+            let addy_to_lp_number_of_bytes_written = rsp+0x10; 
             let write_back_addy = _worker
                 .read_virt::<u32>(VirtAddr(addy_to_lp_number_of_bytes_written))
                 .expect("fugffff\n");
 
-                let len_addr = _worker.reg(Register::Rsp)+0xc; 
+                let len_addr = rsp+0xc; 
                 let len = _worker
                     .read_virt::<u32>(VirtAddr(len_addr))
                     .expect("fugffff\n");
     
-                print!("len: {}\n", len);
+                //print!("len: {}\n", len);
     
-                let buf_addr = _worker.reg(Register::Rsp)+0x8; 
+                let buf_addr = rsp+0x8; 
                 let buf = _worker
                     .read_virt::<u32>(VirtAddr(buf_addr))
                     .expect("fugffff\n");
-                print!("buf_addr {:#x}\n", buf_addr);
+                //print!("buf_addr {:#x}\n", buf_addr);
                 
     
 
@@ -1012,7 +1016,7 @@ fn bphandler(
         }
         BreakPoint::Crash => {
             print!("crashed\n");
-            //_worker.report_crash(_session, &_lpf.0, &_lpf.1,&_lpf.2,_lpf.3);
+            _worker.report_crash(_session, &_lpf.0, &_lpf.1,&_lpf.2,_lpf.3);
             return false;
         }
         BreakPoint::End =>{
