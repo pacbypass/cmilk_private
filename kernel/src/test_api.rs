@@ -73,9 +73,9 @@ pub fn fuzz() {
     //worker.mutator.max_input_size(128).seed(seed as u64);
     //let mut first_run = 1;
     
-    if (core!().id != 0){
-        cpu::halt();
-    }
+    // if (core!().id != 0){
+    //     cpu::halt();
+    // }
 
     loop {
         let _vmexit = worker.fuzz_case(&mut ());
@@ -115,8 +115,10 @@ fn inject(_worker: &mut Worker, _context: &mut dyn Any) {
     _worker.write_virt_from(VirtAddr(BreakPoint::X86usersetfilesizepointerex as u64), &input);
     _worker.write_virt_from(VirtAddr(BreakPoint::X86usersetfilesizepointerextwo as u64), &input);
     _worker.write_virt_from(VirtAddr(BreakPoint::X86userdeletefiletwo as u64), &input);
-    _worker.write_virt_from(VirtAddr(BreakPoint::X86userdeletefile as u64), &input);
+    _worker.write_virt_from(VirtAddr(BreakPoint::X86userdeletefile as u64), &input); // X86userFlushFileBufferstwo
 
+    _worker.write_virt_from(VirtAddr(BreakPoint::X86userFlushFileBufferstwo as u64), &input); 
+    _worker.write_virt_from(VirtAddr(BreakPoint::X86userFlushFileBuffers as u64), &input); 
 
     //_worker.write_virt_from(VirtAddr(BreakPoint::NtReadFile as u64), &input); 
 
@@ -692,8 +694,10 @@ enum BreakPoint {
     //NtWriteFile = 0xfffff8002ae6e400,
 
     // End of test case, followed by an immediate exit.
-    Crash = 0x7ffbba9b2f00,
 
+
+    //Crash = 0x7ffbba9b2f00,
+    Crash = 0xfffff8002a9d5f73,
     X86usercreatefile = 0x756e3bb0,
     X86usercreatefiletwo = 0x76652460,
 
@@ -715,6 +719,9 @@ enum BreakPoint {
     X86userdeletefile = 0x756e3be0 ,
     X86userdeletefiletwo = 0x76650570 ,
 
+    X86userFlushFileBuffers = 0x756e3d10 ,
+    X86userFlushFileBufferstwo = 0x76662940 ,
+
     End = 0xa16f64,
     //X86readfile = 0x756e3bb0,
     //X86writefile = 0x756e3bb0,
@@ -734,13 +741,12 @@ fn bphandler(
 ) -> bool {
     print!("bp handler hit {:x}\n",_worker.reg(Register::Rip));
     if _worker.reg(Register::Rip) == BreakPoint::Crash as u64{
-        print!("crashed {}\n", _lpf.2);
+        //print!("crashed {}\n", _lpf.2);
         _worker.report_crash(_session, &_lpf.0, &_lpf.1,&_lpf.2,_lpf.3);
         return false;
     }
     if _worker.reg(Register::Rip) == BreakPoint::End as u64{
-        print!("ended\n");
-        //_worker.report_crash(_session, &_lpf.0, &_lpf.1,&_lpf.2,_lpf.3);
+        //print!("ended\n");
         return false;
     }
     let rip: BreakPoint = unsafe { core::mem::transmute(_worker.reg(Register::Rip)) };
@@ -750,6 +756,22 @@ fn bphandler(
         .read_virt::<u32>(VirtAddr(rsp))
         .expect("fugffff\n");
     match rip {
+        BreakPoint::X86userFlushFileBuffers => {
+            _worker.mod_reg(Register::Rsp, |x| {
+                x+0x8
+            });
+            _worker.set_reg(Register::Rip, return_address as u64);
+            _worker.set_reg(Register::Rax, 1);
+            return true;
+        }
+        BreakPoint::X86userFlushFileBufferstwo => {
+            _worker.mod_reg(Register::Rsp, |x| {
+                x+0x8
+            });
+            _worker.set_reg(Register::Rip, return_address as u64);
+            _worker.set_reg(Register::Rax, 1);
+            return true;
+        }
         BreakPoint::X86userdeletefiletwo => {
             _worker.mod_reg(Register::Rsp, |x| {
                 x+0x8
