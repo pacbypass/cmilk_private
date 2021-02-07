@@ -101,7 +101,7 @@ pub enum ServerMessage<'a> {
     },
 
     /// Trace of all RIPs during an execution
-    Trace(Cow<'a, [u64]>),
+    Trace(Cow<'a, [CoverageRecord<'a>]>),
 
     /// Report a new "unique" crash to the server
     Crash {

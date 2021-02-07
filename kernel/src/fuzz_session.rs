@@ -611,7 +611,7 @@ pub struct Worker<'a> {
     profiling: BTreeMap<(u64, u64), u64>,
     
     /// Vector to hold all RIPs executed when `GUEST_TRACING` is enabled
-    trace: Vec<u64>,
+    trace: Vec<CoverageRecord<'a>>,
 
 }
 
@@ -1410,7 +1410,8 @@ impl<'a> Worker<'a> {
                         //inject the input into the target program
                         //self.read_virt_into(VirtAddr(rip), &mut input);
                         //print!("{:x?}\n", input);
-                        self.trace.push(rip);
+                        let module = self.resolve_module(rip);
+                        self.trace.push(module);
                     }
                     continue 'vm_loop;
                 }

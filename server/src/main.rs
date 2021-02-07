@@ -553,23 +553,43 @@ fn handle_client(stream: TcpStream,
                     write!(fd, "{}", &regstate)?;
                 }
             }
-            ServerMessage::Trace(trace) => {
+            ServerMessage::Trace(records) => {
                 // Create the traces directory
                 std::fs::create_dir_all("traces").unwrap();
+                // Get a unique trace file ID
+                let trace_id = context.trace_id
+                    .fetch_add(1, Ordering::Relaxed);
 
-                {
-                    // Get a unique trace file ID
-                    let trace_id = context.trace_id
-                        .fetch_add(1, Ordering::Relaxed);
+                // Create the trace file
+                let mut coverage_file = File::create(Path::new("traces")
+                    .join(&format!("trace_{:016x}", trace_id)))?;
+                for record in records.iter() {
+                    // Update the global coverage database
 
-                    // Create the trace file
-                    let mut fd = File::create(Path::new("traces")
-                        .join(&format!("trace_{:016x}", trace_id)))?;
-
-                    for rip in trace.iter() {
-                        write!(fd, "{:#018x}\n", rip)?;
+                    if let Some(module) = &record.module {
+                        write!(coverage_file, "{}+", module)?;
                     }
-                }
+                    write!(coverage_file, "{:#x}\n", record.offset)?;
+                    
+                    // Update unique coverage stats for this session
+                    let mut session = client.as_ref().unwrap()
+                        .session.write().unwrap();
+                    session.unique_coverage += 1;
+
+            }
+                // {
+                //     // Get a unique trace file ID
+                //     let trace_id = context.trace_id
+                //         .fetch_add(1, Ordering::Relaxed);
+
+                //     // Create the trace file
+                //     let mut fd = File::create(Path::new("traces")
+                //         .join(&format!("trace_{:016x}", trace_id)))?;
+
+                //     for rip in trace.iter() {
+                //         write!(fd, "{:#018x}\n", rip)?;
+                //     }
+                // }
             }
             _ => panic!("Unhandled packet\n"),
         }

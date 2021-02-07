@@ -335,6 +335,8 @@ enum BreakPoint {
     // nt!KeBugCheckEx
     Crash = 0xfffff8002a9c83b0,
 
+
+    
     // ntdll!KiUserExceptionDispatch
     //Crash = 0x7ffbba9b2f00,
 
