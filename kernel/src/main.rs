@@ -33,7 +33,7 @@ pub mod fuzz_session;
 pub mod test_fuzzer;
 pub mod ept;
 pub mod paging;
-pub mod test_api;
+pub mod foxit;
 //p1ub mod vmexit_test;
 
 //pub mod redacted;

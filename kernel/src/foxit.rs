@@ -382,16 +382,17 @@ fn bphandler(
         _worker.report_crash(_session, &_lpf.0, &_lpf.1,&_lpf.2,_lpf.3);
         return false;
     }
+
     if _worker.reg(Register::Rip) == BreakPoint::End as u64{
         print!("ended\n");
         return false;
     }
-    let rip: BreakPoint = unsafe { core::mem::transmute(_worker.reg(Register::Rip)) };
 
+    let rip: BreakPoint = unsafe { core::mem::transmute(_worker.reg(Register::Rip)) };
     let rsp = _worker.reg(Register::Rsp);
     let return_address = _worker
         .read_virt::<u32>(VirtAddr(rsp))
-        .expect("fugffff\n");
+        .expect("Couldn't read the x86 return address.\n");
     match rip {
         BreakPoint::X86userFlushFileBuffers => {
             _worker.mod_reg(Register::Rsp, |x| {
@@ -418,22 +419,6 @@ fn bphandler(
             return true;
         }
         BreakPoint::X86usercreatefile =>{
-            /*
-            0:000> du poi(esp+4)
-            00ed7a4c  "e:\smb\hello.jpg"
- */
-
- /* 
-            let mut file_name_bytes: [u8; 128] = [0; 128];
-            _worker.read_virt_into(VirtAddr(fname_address), &mut file_name_bytes);
-            let (front, slice, back) = unsafe { file_name_bytes.align_to::<u16>() };
-            let fname: alloc::string::String = if front.is_empty() && back.is_empty() {
-                alloc::string::String::from_utf16(slice).ok()
-            } else {
-                None
-            };*/
-
-            //print!("{}", fname);
             _worker.mod_reg(Register::Rsp, |x| {
                 x+0x20
             });
@@ -445,13 +430,13 @@ fn bphandler(
             let addr = rsp+0x8; 
             let base_large_integer = _worker
                 .read_virt::<u32>(VirtAddr(addr))
-                .expect("fugffff\n");
+                .expect("Couldn't get the virtaddr of the large integer.\n");
                 
             let size = _worker.fuzz_input.as_ref().unwrap().len();
 
+            
             // file size
             _worker.write_virt::<u64>(VirtAddr(base_large_integer as u64), size as u64);
-
             _worker.mod_reg(Register::Rsp, |x| {
                 x+0xc
             });
@@ -468,18 +453,19 @@ fn bphandler(
             return true;
         }
         BreakPoint::X86userwritefile =>{
-            //return false;
-            print!("writefile X86userwritefile");
+            // Ignore, but write back the len, as if we wrote to a file
+            print!("X86userwritefile\n");
             let addy_to_lp_number_of_bytes_written = rsp+0x10; 
             let write_back_addy = _worker
                 .read_virt::<u32>(VirtAddr(addy_to_lp_number_of_bytes_written))
-                .expect("fugffff\n");
+                .expect("Couldn't get the addy ptr to bytes_written\n");
 
             let len_addr = rsp+0xc; 
             let len = _worker
                 .read_virt::<u32>(VirtAddr(len_addr))
-                .expect("fugffff\n");
+                .expect("couldn't get the\n");
 
+            // write back len to bytes_written
             _worker.write_virt::<u32>(VirtAddr(write_back_addy as u64), len);
             _worker.mod_reg(Register::Rsp, |x| {
                 x+0x18
@@ -492,35 +478,30 @@ fn bphandler(
             let addy_to_lp_number_of_bytes_written = rsp+0x10; 
             let write_back_addy = _worker
                 .read_virt::<u32>(VirtAddr(addy_to_lp_number_of_bytes_written))
-                .expect("fugffff\n");
+                .expect("couldn't get bytes_read ptr\n");
 
             let len_addr = rsp+0xc; 
             let len = _worker
                 .read_virt::<u32>(VirtAddr(len_addr))
-                .expect("fugffff\n");
+                .expect("couldn't get read length\n");
 
             print!("len: {}\n", len);
 
             let buf_addr = rsp+0x8; 
             let buf = _worker
                 .read_virt::<u32>(VirtAddr(buf_addr))
-                .expect("fugffff\n");
+                .expect("couldn't get buf addy\n");
             print!("buf_addr {:#x}\n", buf_addr);
             
-
+            // Write back the fuzz_input into the guest memory.
             let input = _worker.fuzz_input.take().unwrap();
-
             let slice = &input[..len as usize];
-            //let input = &slice[start_offset as usize..len as usize];
-
-            
-
-
             _worker.write_virt_from(VirtAddr(buf as u64), slice);
-            _worker.write_virt::<u32>(VirtAddr(write_back_addy as u64), len).expect("peenis");
+            _worker.write_virt::<u32>(VirtAddr(write_back_addy as u64), len).expect("Error writing fuzz case data to buffer.");
             _worker.mod_reg(Register::Rsp, |x| {
                 x+0x18
             });
+
             _worker.set_reg(Register::Rip, return_address as u64);
             _worker.set_reg(Register::Rax, 0x1);
             _worker.fuzz_input = Some(input);
