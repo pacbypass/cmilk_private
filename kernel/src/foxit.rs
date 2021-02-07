@@ -332,8 +332,13 @@ enum BreakPoint {
 
     // End of test case, followed by an immediate exit.
 
+    // nt!KeBugCheckEx
+    Crash = 0xfffff8002a9c83b0,
 
-    Crash = 0x7ffbba9b2f00,
+    // ntdll!KiUserExceptionDispatch
+    //Crash = 0x7ffbba9b2f00,
+
+    // nt!KiPageFault+0x3f3
     //Crash = 0xfffff8002a9d5f73,
     X86usercreatefile = 0x76652460,
     //X86usercreatefiletwo = 0x756e3bb0,

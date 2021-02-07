@@ -1018,7 +1018,7 @@ impl<'a> Worker<'a> {
             match vmexit {
 
                 VmExit::CpuId {inst_len} =>{
-                    panic!("cpuid\n")
+                    panic!("cpuid\n");
                     
                     let rax = self.reg(Register::Rax) as u32;
                     //let rcx = self.reg(Register::Rcx) as u32;
@@ -2307,6 +2307,7 @@ impl<'a> FuzzSession<'a> {
             server_addr:      server.into(),
         }
     }
+    // TODO
     /*pub fn from_windbg<S, F>(server: &str, name: S, init_master: F) -> Self
     where F: FnOnce(&mut Worker),
           S: AsRef<str> {
