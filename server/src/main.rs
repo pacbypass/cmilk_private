@@ -567,7 +567,12 @@ fn handle_client(stream: TcpStream,
                     // Update the global coverage database
 
                     if let Some(module) = &record.module {
-                        write!(coverage_file, "{}+", module)?;
+                        if format!("{}",module) == "ntoskrnl.exe"{
+                            write!(coverage_file, "{}+", "nt")?;
+                        }
+                        else{
+                            write!(coverage_file, "{}+", module)?;
+                        }
                     }
                     write!(coverage_file, "{:#x}\n", record.offset)?;
                     
