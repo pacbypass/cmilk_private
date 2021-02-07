@@ -148,20 +148,14 @@ impl<'a> NetMapping<'a> {
     /// `server` should be the `ip:port` for the server
     pub fn new(server: &str, filename: &str, read_only: bool) -> Option<Self> {
         // Get access to a network device
-        print!("nigger1\n");
         let netdev = NetDevice::get()?;
-        print!("nigger2\n");
         // Connect to the server
         let mut tcp = BufferedIo::new(NetDevice::tcp_connect(netdev, server)?);
-        print!("nigger3\n");
         // Send the get file ID request
         ServerMessage::GetFileId(Cow::Borrowed(filename)).serialize(&mut tcp);
-        print!("nigger4\n");
         tcp.flush();
-        print!("nigger5\n");
 
         // Get the response
-        print!("nigger6\n");
         let (file_id, size) = match ServerMessage::deserialize(&mut tcp)? {
             ServerMessage::FileId { id, size } => (id, size),
             _ => return None,
@@ -169,7 +163,6 @@ impl<'a> NetMapping<'a> {
 
         // Nothing to map
         if size <= 0 { return None; }
-        print!("nigger7\n");
         // Allocate virtual memory capable of holding the file
         let size_align = size.checked_add(0xfff)? & !0xfff;
         let virt_addrs = [
@@ -182,7 +175,6 @@ impl<'a> NetMapping<'a> {
             crate::mm::alloc_virt_addr_4k(size_align as u64),
             crate::mm::alloc_virt_addr_4k(size_align as u64),
         ];
-        print!("nigger8\n");
         // Create a fault handler entry
         let handler = Box::new(NetMapHandler {
             vaddr:     virt_addrs,

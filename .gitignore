@@ -7,3 +7,6 @@
 /server/crashes
 /server/files
 /server/inputs
+server/safa.json
+server/sfaf.py
+run.bat

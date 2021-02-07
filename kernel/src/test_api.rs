@@ -132,118 +132,186 @@ fn inject(_worker: &mut Worker, _context: &mut dyn Any) {
     print!("{:x?}", input);*/
 
     let input:Vec<u8> = vec![
-        0xff,
-        0x4f,
-        0xff,
-        0x51,
+        0x47,
+        0x49,
+        0x46,
+        0x38,
+        0x39,
+        0x61,
+        0x20,
         0x0,
+        0x20,
+        0x0,
+        0xa1,
+        0x0,
+        0x0,
+        0xb2,
+        0xc0,
+        0xdc,
+        0x0,
+        0x0,
+        0x0,
+        0xff,
+        0xff,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x21,
+        0xf9,
+        0x4,
+        0x1,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x2c,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x20,
+        0x0,
+        0x20,
+        0x0,
+        0x0,
+        0x2,
+        0x85,
+        0x84,
+        0x8f,
+        0xa9,
+        0xcb,
+        0x1b,
+        0xf,
+        0x61,
+        0x9b,
+        0x0,
+        0x8a,
+        0x8b,
+        0xb1,
+        0xa4,
+        0x28,
+        0xe4,
+        0xf,
+        0x6,
+        0x5c,
+        0xe5,
+        0x81,
+        0xa6,
+        0x26,
+        0x36,
+        0xa5,
+        0x69,
+        0x9d,
+        0xa9,
+        0xb2,
+        0x86,
+        0xd1,
         0x29,
+        0xbc,
+        0x1d,
+        0x1d,
+        0xc5,
+        0x9f,
+        0x6d,
+        0xe8,
+        0x59,
+        0xfe,
+        0xc0,
+        0xdd,
+        0x70,
+        0x40,
+        0x5a,
+        0xed,
+        0xe0,
+        0xfb,
+        0x15,
+        0x85,
+        0x3d,
+        0x23,
+        0x30,
+        0xa9,
+        0x69,
+        0x3a,
+        0x97,
+        0x42,
+        0x28,
+        0x2a,
+        0x67,
+        0x3c,
+        0x5a,
+        0x2f,
+        0xcf,
+        0xac,
+        0x68,
+        0x5b,
+        0xa3,
+        0xba,
+        0x2a,
+        0x5e,
+        0x31,
+        0x8b,
+        0x5c,
+        0x6e,
+        0x39,
+        0xd1,
+        0x53,
+        0x75,
+        0x35,
+        0x1b,
+        0x76,
+        0x8f,
+        0xc1,
+        0xdc,
+        0x20,
+        0x3c,
+        0x45,
+        0x87,
+        0x47,
+        0xa5,
+        0xed,
+        0x3b,
+        0x32,
+        0x6d,
+        0xc7,
+        0xc4,
+        0x27,
+        0x83,
+        0x35,
+        0x96,
+        0x0,
+        0xd5,
+        0x75,
+        0x6,
+        0xe3,
+        0x62,
+        0xb6,
+        0xb7,
+        0xc8,
+        0x32,
+        0xa3,
+        0xc8,
+        0x10,
+        0xa8,
+        0x94,
+        0xf4,
+        0x30,
+        0x92,
+        0xc7,
+        0x35,
+        0x82,
+        0x44,
+        0xb9,
+        0x73,
+        0xb9,
+        0x79,
+        0xf8,
+        0xc4,
+        0xb3,
+        0x50,
         0x0,
         0x0,
-        0x0,
-        0x0,
-        0x1,
-        0x0,
-        0x0,
-        0x0,
-        0xfc,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0xff,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x93,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x1,
-        0x0,
-        0x1,
-        0x1,
-        0x0,
-        0x0,
-        0x0,
-        0xc,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0xff,
-        0x51,
-        0x0,
-        0x29,
-        0x0,
-        0x0,
-        0x0,
-        0x4a,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0xfc,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x1,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x93,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x1,
-        0x0,
-        0x1,
-        0x1,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        0x0,
+        0x3b,
     ];
     // save the input back
     _worker.fuzz_input = Some(input);
@@ -265,8 +333,8 @@ enum BreakPoint {
     // End of test case, followed by an immediate exit.
 
 
-    //Crash = 0x7ffbba9b2f00,
-    Crash = 0xfffff8002a9d5f73,
+    Crash = 0x7ffbba9b2f00,
+    //Crash = 0xfffff8002a9d5f73,
     X86usercreatefile = 0x76652460,
     //X86usercreatefiletwo = 0x756e3bb0,
 
@@ -308,7 +376,7 @@ fn bphandler(
     _lpf: &(CoverageRecord, VmExit, BasicRegisterState, u8),
     _session: &FuzzSession
 ) -> bool {
-    //print!("bp handler hit {:x}\n",_worker.reg(Register::Rip));
+    print!("bp handler hit {:x}\n",_worker.reg(Register::Rip));
     if _worker.reg(Register::Rip) == BreakPoint::Crash as u64{
         print!("crashed {}\n", _lpf.2);
         _worker.report_crash(_session, &_lpf.0, &_lpf.1,&_lpf.2,_lpf.3);
@@ -431,13 +499,13 @@ fn bphandler(
                 .read_virt::<u32>(VirtAddr(len_addr))
                 .expect("fugffff\n");
 
-            //print!("len: {}\n", len);
+            print!("len: {}\n", len);
 
             let buf_addr = rsp+0x8; 
             let buf = _worker
                 .read_virt::<u32>(VirtAddr(buf_addr))
                 .expect("fugffff\n");
-            //print!("buf_addr {:#x}\n", buf_addr);
+            print!("buf_addr {:#x}\n", buf_addr);
             
 
             let input = _worker.fuzz_input.take().unwrap();
@@ -445,7 +513,6 @@ fn bphandler(
             let slice = &input[..len as usize];
             //let input = &slice[start_offset as usize..len as usize];
 
-            // write back the file to our nig nog
             
 
 
@@ -548,7 +615,6 @@ fn bphandler(
         //     // make sure that casting to usize doesnt fuck it up
         //     let input = &slice[start_offset as usize..length as usize];
 
-        //     // write back the file to our nig nog
         //     _worker.write_virt_from(VirtAddr(addy_buf), input);
         //     _worker.set_reg(Register::Rax, 0);
 
@@ -604,7 +670,7 @@ fn bphandler(
         //     let addy = _worker.read_virt::<u64>(object_attributes).expect("fug\n") + 8;
 
         //     // Raw addy of the utf 16 string
-        //     let fname_address = _worker.read_virt::<u64>(VirtAddr(addy)).expect("nig");
+        //     let fname_address = _worker.read_virt::<u64>(VirtAddr(addy)).expect("ss");
 
         //     // raw utf-16 bytes
         //     _worker.read_virt_into(VirtAddr(fname_address), &mut file_name_bytes);
@@ -616,14 +682,14 @@ fn bphandler(
         //     } else {
         //         None
         //     }
-        //     .expect("niggacheese lol");
+        //     .expect(" lol");
 
         //     print!("fname {}\n", fname);
 
         //     // not sure if its supposed to be u32 or u64, to be tested
 
         //     // Create handle
-        //     let handle: i32 = if fname == "nigger" { 0x6969 } else { -1 };
+        //     let handle: i32 = if fname == "" { 0x6969 } else { -1 };
 
         //     // write back our fake handle
             

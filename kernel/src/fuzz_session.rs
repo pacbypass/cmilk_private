@@ -51,7 +51,7 @@ const GUEST_PROFILING: bool = false;
 
 /// If enabled, the guest is single stepped and all RIPs are logged during
 /// execution. This is incredibly slow and memory intensive, use for debugging.
-const GUEST_TRACING: bool = false;
+const GUEST_TRACING: bool = true;
 
 /// When set, the APIC will be monitored for writes. This is not done yet, do
 /// not use!
@@ -1016,7 +1016,9 @@ impl<'a> Worker<'a> {
             // }
             
             match vmexit {
+
                 VmExit::CpuId {inst_len} =>{
+                    panic!("cpuid\n")
                     
                     let rax = self.reg(Register::Rax) as u32;
                     //let rcx = self.reg(Register::Rcx) as u32;
@@ -1034,35 +1036,33 @@ impl<'a> Worker<'a> {
                     
                     continue 'vm_loop;*/
                     // 0x80000000
-                    let mut nig1:u32 = 0;
-                    let mut nig2:u32 = 0;
-                    let mut nig3:u32 = 0;
-                    let mut nig4:u32 = 0;
+                    let mut n1:u32 = 0;
+                    let mut n2:u32 = 0;
+                    let mut n3:u32 = 0;
+                    let mut n4:u32 = 0;
                     if rax == 0x1 {
-                        nig2 |=0x80000000;
+                        n2 |=0x80000000;
                     }
                     if rax == 0x40000000{
-                        nig1 = 0x40000001;
+                        n1 = 0x40000001;
 
-                        //niggerfaggot
-                        nig2 = 0x6e696767;
-                        nig3 = 0x65726661;
-                        nig4 = 0x67676f74;
+                        n2 = 0x6e696767;
+                        n3 = 0x65726661;
+                        n4 = 0x67676f74;
                     }
                     if rax == 0x40000001{
                         //0#vH
-                        nig1 = 0x30237648;
-                        nig2 = 0;
-                        nig3 = 0;
-                        nig4 = 0;
+                        n1 = 0x30237648;
+                        n2 = 0;
+                        n3 = 0;
+                        n4 = 0;
                         
                     }
-                    self.set_reg(Register::Rax, nig1 as u64);
-                    self.set_reg(Register::Rbx, nig2 as u64);
-                    self.set_reg(Register::Rcx, nig3 as u64);
-                    self.set_reg(Register::Rdx, nig4 as u64);
+                    self.set_reg(Register::Rax, n1 as u64);
+                    self.set_reg(Register::Rbx, n2 as u64);
+                    self.set_reg(Register::Rcx, n3 as u64);
+                    self.set_reg(Register::Rdx, n4 as u64);
                     
-                    //print!("NIGGER CPUID {}", rax);
                     let rip = self.reg(Register::Rip);
                     self.set_reg(Register::Rip, rip.wrapping_add(inst_len));
                     continue 'vm_loop;
@@ -1164,7 +1164,7 @@ impl<'a> Worker<'a> {
                     //     //break 'vm_loop vmexit;
                     // }
                     //let rip = self.reg(Register::Rip);
-                    //print!("BREAKPOINT HIT NIGGA WOOHOO\n");
+                    //print!("BREAKPOINT HIT WOOHOO\n");
                     //print!("{}", rip);
                     if let Some(breakpoint_handler) = session.breakpoint_handler {
                         if breakpoint_handler(self, last_page_fault.as_ref().unwrap(), &session ) {
@@ -1180,10 +1180,7 @@ impl<'a> Worker<'a> {
                         cpu::halt();
                     }
                 }
-                /* 
-                VmExit::Exception(Exception::GeneralProtectionFault(nignog:u64)) => {
-                    print!("nig {:x}", nignog);
-                }*/
+
                 VmExit::Exception(_) => {
                     let rip      = self.reg(Register::Rip);
                     let modoff   = self.resolve_module(rip);
