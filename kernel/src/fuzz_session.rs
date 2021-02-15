@@ -238,7 +238,7 @@ pub struct NetBacking<'a> {
     phys_ranges: BTreeMap<u64, (usize, u64)>,
 }
 
-struct Backing<'a> {
+pub struct Backing<'a> {
     /// A master to this backing
     master: Option<Arc<Backing<'a>>>,
 
@@ -565,7 +565,7 @@ pub struct Worker<'a> {
 
     /// The backing of the VM, this has the registers and memory for the
     /// worker
-    backing: Backing<'a>,
+    pub backing: Backing<'a>,
 
     /// The fuzz session this worker belongs to
     session: Option<Arc<FuzzSession<'a>>>,
@@ -783,6 +783,7 @@ impl<'a> Worker<'a> {
     }
 
     pub fn map_zeroed_rw_page(&mut self, paddr: PhysAddr) {
+        // Make sure we're page-aligned
         assert!(paddr.0 & 0xfff == 0);
 
         // Get access to physical memory
@@ -1014,11 +1015,13 @@ impl<'a> Worker<'a> {
             // if (vmexit != VmExit::MonitorTrap){
             //     print!("vmexit: {:#x?}\n", vmexit);
             // }
-            
-            match vmexit {
+            //let input: [u8; 1] = [0xcc];
+            //self.write_virt_from(VirtAddr(0x717785d0 as u64), &input); // 0x71778622
 
+            // let input: [u8; 1] = [0xcc];
+            // self.write_virt_from(VirtAddr(0x71778622 as u64), &input); // 0x71778622
+            match vmexit {
                 VmExit::CpuId {inst_len} =>{
-                    panic!("cpuid\n");
                     
                     let rax = self.reg(Register::Rax) as u32;
                     //let rcx = self.reg(Register::Rcx) as u32;
@@ -1406,6 +1409,18 @@ impl<'a> Worker<'a> {
                     if GUEST_TRACING {
                         // Log all RIPs executed when in tracing mode
                         let rip = self.reg(Register::Rip);
+                        // if rip == 0x71778622{
+                        //     let regstate = BasicRegisterState::from_register_state(
+                        //         self.backing.vm.active_register_state());
+                        //     print!("{}\n", regstate);
+                        //     let mut inputt: [u8; 16] = [0; 16];
+                            
+                        //     let rax = self.reg(Register::Rax);
+                        //     self.read_virt_into(VirtAddr(rax as u64), &mut inputt);
+
+                        //     print!("{:#x?}\n", inputt);
+
+                        // }
                         //let mut input: [u8; 60] = [0; 60];
                         //inject the input into the target program
                         //self.read_virt_into(VirtAddr(rip), &mut input);

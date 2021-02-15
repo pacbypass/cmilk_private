@@ -575,11 +575,6 @@ fn handle_client(stream: TcpStream,
                         }
                     }
                     write!(coverage_file, "{:#x}\n", record.offset)?;
-                    
-                    // Update unique coverage stats for this session
-                    let mut session = client.as_ref().unwrap()
-                        .session.write().unwrap();
-                    session.unique_coverage += 1;
 
             }
                 // {

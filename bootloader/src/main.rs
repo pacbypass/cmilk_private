@@ -76,7 +76,7 @@ extern fn entry(bootloader_end: usize, soft_reboot_entry: usize,
             }
 
             // Print the bootloader banner
-            driver.write(b"Chocolate Milk bootloader starting...\n");
+            driver.write(b"HELLO SIR WELCOME TO DA CLUB...\n");
 
             // Store the driver in the `BOOT_ARGS`
             *serial = Some(driver);
@@ -134,7 +134,7 @@ extern fn entry(bootloader_end: usize, soft_reboot_entry: usize,
             // is a common point for things to "freeze" if the PXE boot code
             // breaks or the PXE server is unreachable
             BOOT_ARGS.serial.lock().as_mut().unwrap()
-                .write(b"Downloading kernel...\n");
+                .write(b"downloading...\n");
 
             let kernel = loop {
                 // Download the kernel
@@ -145,11 +145,11 @@ extern fn entry(bootloader_end: usize, soft_reboot_entry: usize,
     
                 // Print that we failed
                 BOOT_ARGS.serial.lock().as_mut().unwrap()
-                    .write(b"Kernel download failed, retrying\n");
+                    .write(b"failed downloading\n");
             };
             
             BOOT_ARGS.serial.lock().as_mut().unwrap()
-                .write(b"Kernel download complete!\n");
+                .write(b"we got it downloaded bro\n");
 
             // Parse the PE from the kernel
             let pe = PeParser::parse(&kernel).expect("Failed to parse PE");
