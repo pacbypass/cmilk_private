@@ -102,7 +102,8 @@ pub extern fn entry(boot_args: PhysAddr, core_id: u32) -> ! {
     // ====================================================================
 
     //test_fuzzer::fuzz();
-    foxit::fuzz();
+    //foxit::fuzz();
+    winboot::main();
 
     cpu::halt();
 }

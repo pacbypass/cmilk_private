@@ -14,8 +14,8 @@ pub fn main() {
 
     // Netmap the disk image
     let it = cpu::rdtsc();
-    let disk = NetMapping::new("192.168.101.1:1911",
-                               "winboot/windows.img", true)
+    let disk = NetMapping::new("192.168.1.175:1911",
+                               "winboot/windows_install.img", true)
         .expect("Failed to netmap disk");
     let disk_load_time = time::elapsed(it);
 
