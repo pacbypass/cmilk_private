@@ -293,7 +293,7 @@ impl<'a> Backing<'a> {
             }
         }
     }
-
+    
     /// Translate a physical address for the guest into a physical address on
     /// the host. If `write` is set, the translation will occur for a write
     /// access, and thus the copy-on-write will be performed on the page if
@@ -756,7 +756,7 @@ impl<'a> Worker<'a> {
             None
         }
     }
-    
+
     /// This routine can be used to map in a single page full of zeros as
     /// read-only. This can be used to nop out things like the HPET
     pub fn map_zeroed_readonly_page(&mut self, paddr: PhysAddr) {
@@ -2413,7 +2413,7 @@ impl<'a> FuzzSession<'a> {
        
         if ENABLE_APIC {
             // Map in a read-only APIC
-            //worker.map_zeroed_readonly_page(PhysAddr(0xfee00000));
+            worker.map_zeroed_readonly_page(PhysAddr(0xfee00000));
         }
         //worker.map_zeroed_rw_page(PhysAddr(0xfee00000));
         // Map a zeroed out HPET
