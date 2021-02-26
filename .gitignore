@@ -11,3 +11,4 @@ server/safa.json
 server/sfaf.py
 run.bat
 CVE-2020-9607
+DLLMaintainer/src/bot.copy.py

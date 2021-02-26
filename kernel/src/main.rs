@@ -34,6 +34,7 @@ pub mod test_fuzzer;
 pub mod ept;
 pub mod paging;
 pub mod foxit;
+pub mod winboot;
 //p1ub mod vmexit_test;
 
 //pub mod redacted;
@@ -102,8 +103,8 @@ pub extern fn entry(boot_args: PhysAddr, core_id: u32) -> ! {
     // ====================================================================
 
     //test_fuzzer::fuzz();
-    //foxit::fuzz();
-    winboot::main();
+    foxit::fuzz();
+    //winboot::main();
 
     cpu::halt();
 }

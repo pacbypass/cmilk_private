@@ -54,11 +54,17 @@ fn main() {
     
     for x in vecc.iter(){
         let in_str = x.as_path().display().to_string();
-        print!("loading {}\n", in_str);
+        print!("checking {}\n", in_str);
         //let h = unsafe {LoadLibraryW(in_str.to_nullterminated_u16().as_ptr()) };
-        let h = unsafe{LoadLibraryExW(in_str.to_nullterminated_u16().as_ptr(),
+        let dd = unsafe{LoadLibraryExW(in_str.to_nullterminated_u16().as_ptr(),
                         ptr::null(),
-                        0x0).to_result().unwrap()};
+                        0x0).to_result()};
+        
+        if dd.is_err(){
+            continue;
+        }
+        print!("loading {}\n", in_str);
+        let h = dd.unwrap();
         print!("{:?}\n", h);
 
         /*
