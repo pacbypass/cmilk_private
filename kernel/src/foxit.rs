@@ -97,7 +97,7 @@ pub fn fuzz() {
 
 //mutate testcase, get's called on each fuzz case
 fn inject(_worker: &mut Worker, _context: &mut dyn Any) {
-    _worker.mutate(_context.downcast_mut::< Mutator>().expect("could not downcast"));
+    let fuzz_input = _worker.mutate(_context.downcast_mut::< Mutator>().expect("could not downcast"));
     //print!("{:x}", _worker.reg(Register::Rip));
 
     //let mut input = worker.mutate().unwrap();
