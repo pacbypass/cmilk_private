@@ -35,6 +35,8 @@ pub mod ept;
 pub mod paging;
 pub mod foxit;
 pub mod winboot;
+
+extern crate basic_mutator;
 //p1ub mod vmexit_test;
 
 //pub mod redacted;

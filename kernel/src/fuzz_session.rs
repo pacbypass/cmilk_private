@@ -29,6 +29,7 @@ use crate::net::netmapping::NetMapping;
 use crate::core_locals::LockInterrupts;
 use crate::paging::*;
 
+use basic_mutator::{Mutator, InputDatabase};
 use aht::Aht;
 use falktp::{CoverageRecord, InputRecord, ServerMessage, CrashType};
 use falktp::PageFaultType;
@@ -756,6 +757,15 @@ impl<'a> Worker<'a> {
             None
         }
     }
+    pub fn mutate(&mut self, mutator: &mut Mutator) -> Arc<Vec<u8>>{
+        let session = self.session.take().unwrap();
+        // pub fn mutate(&mut self, mutator: &mut Mutator, input: &[u8], mutation_passes: u32)
+
+        let input = self.rand_input();
+        let mutated = session.mutate(mutator, input.unwrap(), self.rng.rand());
+        self.session = Some(session);
+        mutated
+    }
 
     /// This routine can be used to map in a single page full of zeros as
     /// read-only. This can be used to nop out things like the HPET
@@ -1170,7 +1180,7 @@ impl<'a> Worker<'a> {
                     //print!("BREAKPOINT HIT WOOHOO\n");
                     //print!("{}", rip);
                     if let Some(breakpoint_handler) = session.breakpoint_handler {
-                        if breakpoint_handler(self, last_page_fault.as_ref().unwrap(), &session ) {
+                        if breakpoint_handler(self, &last_page_fault, &session ) {
                             continue 'vm_loop;
                         }
                     }
@@ -1990,7 +2000,7 @@ type InjectCallback<'a> = fn(&mut Worker<'a>, &mut dyn Any);
 
 type VmExitFilter<'a> = fn(&mut Worker<'a>, &VmExit) -> bool;
 //type BpHandler<'a> = fn(&mut Worker<'a>) -> bool;
-type BpHandler<'a> = fn(&mut Worker<'a>, &(CoverageRecord, VmExit, BasicRegisterState, u8), &FuzzSession) -> bool;
+type BpHandler<'a> = fn(&mut Worker<'a>, &Option<(CoverageRecord, VmExit, BasicRegisterState, u8)>, &FuzzSession) -> bool;
 /// A session for multiple workers to fuzz a shared job
 pub struct FuzzSession<'a> {
     /// Master VM state
@@ -2530,6 +2540,14 @@ impl<'a> FuzzSession<'a> {
         server.flush().unwrap();
     }
 
+    pub fn mutate(&self, mutator: &mut Mutator, input: &[u8], mutation_passes: usize) -> Arc<Vec<u8>>{
+        mutator.input.clear();
+        mutator.input.extend_from_slice( input);
+        mutator.mutate(mutation_passes, self);
+
+        Arc::new(mutator.input.clone())
+    }
+
     /// Report coverage
     pub fn report_coverage(&self, input: Option<(&[u8], &FalkHasher)>,
                            cr: &CoverageRecord) -> bool {
@@ -2577,3 +2595,10 @@ impl<'a> FuzzSession<'a> {
     }
 }
 
+
+impl <'a> InputDatabase for FuzzSession<'a> {
+    fn num_inputs(&self) -> usize { self.inputs.len() }
+    fn input(&self, idx: usize) -> Option<&[u8]> {
+        self.inputs.get(idx).map(|x| x.as_slice())             
+    }
+}

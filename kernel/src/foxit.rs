@@ -7,6 +7,7 @@ use core::any::Any;
 use falktp::CoverageRecord;
 use page_table::VirtAddr;
 use alloc::vec::Vec;
+use basic_mutator::Mutator;
 /*
 !reload /user
 x nt!ntwritefile; 
@@ -53,7 +54,7 @@ pub fn fuzz() {
             // }
             print!("LETS FUZZ! 192.168.2.175:1911\n");
             *session = Some(Arc::new(
-                FuzzSession::from_falkdump("192.168.2.175:1911", "fagxit.falkdump", |_worker| {
+                FuzzSession::from_falkdump("192.168.2.175:1911", "guest_foxit_filesize.falkdump", |_worker| {
 
                 })
                     .timeout(1_000_000_000)
@@ -75,12 +76,13 @@ pub fn fuzz() {
     //worker.mutator.max_input_size(128).seed(seed as u64);
     //let mut first_run = 1;
     
-    if (core!().id != 0){
+    if core!().id != 0{
         cpu::halt();
     }
 
+    let mut mutator = Mutator::new().max_input_size(5*1024*1024).seed(cpu::rdtsc());
     loop {
-        let _vmexit = worker.fuzz_case(&mut ());
+        let _vmexit = worker.fuzz_case(&mut mutator);
         //first_run = 0;
         print!("vmexit {:#x?}\n", _vmexit);
     }
@@ -95,6 +97,7 @@ pub fn fuzz() {
 
 //mutate testcase, get's called on each fuzz case
 fn inject(_worker: &mut Worker, _context: &mut dyn Any) {
+    _worker.mutate(_context.downcast_mut::< Mutator>().expect("could not downcast"));
     //print!("{:x}", _worker.reg(Register::Rip));
 
     //let mut input = worker.mutate().unwrap();
@@ -114,7 +117,7 @@ fn inject(_worker: &mut Worker, _context: &mut dyn Any) {
     _worker.write_virt_from(VirtAddr(BreakPoint::X86usergetfilesizeex as u64), &input);
     //_worker.write_virt_from(VirtAddr(BreakPoint::X86usergetfilesizeextwo as u64), &input);
     _worker.write_virt_from(VirtAddr(BreakPoint::End as u64), &input);
-    //_worker.write_virt_from(VirtAddr(BreakPoint::Debug as u64), &input);
+    // _worker.write_virt_from(VirtAddr(BreakPoint::Debug as u64), &input);
     //_worker.write_virt_from(VirtAddr(BreakPoint::Debugtwo as u64), &input);
     _worker.write_virt_from(VirtAddr(BreakPoint::X86usersetfilesizepointerex as u64), &input);
     //_worker.write_virt_from(VirtAddr(BreakPoint::X86usersetfilesizepointerextwo as u64), &input);
@@ -343,37 +346,39 @@ enum BreakPoint {
 
     
     // ntdll!KiUserExceptionDispatch
-    Crash = 0x7ffb7c772f00,
+    Crash = 0x7ff8a68c3540,
 
     // nt!KiPageFault+0x3f3
     //Crash = 0xfffff8002a9d5f73,
-    X86usercreatefile = 0x76e73bb0,
+    X86usercreatefile = 0x76aa3bb0,
     //X86usercreatefiletwo = 0x756e3bb0,
 
-    X86userwritefile = 0x76e74020,
+    X86userwritefile = 0x76aa4020,
     //X86userwritefiletwo = 0x756e4020,
 
-    X86userreadfile = 0x76e73f30,
+    X86userreadfile = 0x76aa3f30,
     //X86userreadfiletwo = 0x756e3f30,
 
-    X86userclosehandle = 0x76e73950,
+    X86userclosehandle = 0x776f2b40 ,
     //X86userclosehandletwo = 0x756e3950,
 
-    X86usergetfilesizeex = 0x76e73de0 ,
+    X86usergetfilesizeex = 0x777020a0,
     //X86usergetfilesizeextwo = 0x756e3de0,
 
-    X86usersetfilesizepointerex = 0x76e73fd0 ,
+    X86usersetfilesizepointerex = 0x776feae0 ,
     //X86usersetfilesizepointerextwo = 0x756e3fd0 ,
 
-    X86userdeletefile = 0x76e73be0 ,
+    X86userdeletefile = 0x76aa3be0 ,
     //X86userdeletefiletwo = 0x756e3be0 ,
 
-    X86userFlushFileBuffers = 0x76e73d10 ,
+    X86userFlushFileBuffers = 0x77702a10,
     //X86userFlushFileBufferstwo = 0x756e3d10 ,
 
-    End = 0x136f64,
+    End = 0x003f6f64,
 
-    //Debug = 0x717785d0,
+
+
+    Debug = 0x72258622,
 
     //Debugtwo = 0x71778622,
 
@@ -391,26 +396,26 @@ enum BreakPoint {
     //NtQueryAttributesFile <- may be needed, nvm maybe not
 }
 
-fn read_stack(worker: &mut Worker){
+// fn read_stack(worker: &mut Worker){
 
-    let rsp = worker.reg(Register::Rsp);
-    print!("{:#x}\n",worker.reg(Register::Rsi));
-    for x in 0..8{
-        print!(" rsp+{:#x}: {:#x}\n", (x*4), worker.read_virt::<u32>(VirtAddr(rsp+(x*4))).expect("could not read stack."));
-    }
-    // let input: [u8; 1] = [0x55];
-    // worker.write_virt_from(VirtAddr(BreakPoint::Debug as u64), &input);
-}
-fn getregs(worker: &mut Worker){
-    let regstate = BasicRegisterState::from_register_state(
-        worker.backing.vm.active_register_state());
-    print!("{}\n", regstate);
-    // let input: [u8; 1] = [0x3a];
-    // worker.write_virt_from(VirtAddr(BreakPoint::Debug as u64), &input);
-}
+//     let rsp = worker.reg(Register::Rsp);
+//     print!("{:#x}\n",worker.reg(Register::Rsi));
+//     for x in 0..8{
+//         print!(" rsp+{:#x}: {:#x}\n", (x*4), worker.read_virt::<u32>(VirtAddr(rsp+(x*4))).expect("could not read stack."));
+//     }
+//     // let input: [u8; 1] = [0x55];
+//     // worker.write_virt_from(VirtAddr(BreakPoint::Debug as u64), &input);
+// }
+// fn getregs(worker: &mut Worker){
+//     let regstate = BasicRegisterState::from_register_state(
+//         worker.backing.vm.active_register_state());
+//     print!("{}\n", regstate);
+//     // let input: [u8; 1] = [0x3a];
+//     // worker.write_virt_from(VirtAddr(BreakPoint::Debug as u64), &input);
+// }
 fn bphandler(
     _worker: &mut Worker,
-    _lpf: &(CoverageRecord, VmExit, BasicRegisterState, u8),
+    _lpp: &Option<(CoverageRecord, VmExit, BasicRegisterState, u8)>,
     _session: &FuzzSession
 ) -> bool {
     let rip: BreakPoint = unsafe { core::mem::transmute(_worker.reg(Register::Rip)) };
@@ -418,6 +423,7 @@ fn bphandler(
     print!("bp handler hit {:?}\n",rip);
 
     if _worker.reg(Register::Rip) == BreakPoint::Crash as u64{
+        let _lpf = _lpp.as_ref().unwrap();
         print!("crashed {}\n", _lpf.2);
         _worker.report_crash(_session, &_lpf.0, &_lpf.1,&_lpf.2,_lpf.3);
         return false;
@@ -434,7 +440,7 @@ fn bphandler(
         .read_virt::<u32>(VirtAddr(rsp))
         .expect("Couldn't read the x86 return address.\n");
     match rip {
-        // BreakPoint::Debugtwo =>{
+        // BreakPoint::Debug =>{
         //     //getregs(_worker);
         //     //print!("{:#x}\n",_worker.reg(Register::Rsi));
         //     let input: [u8; 1] = [0x3a];
@@ -585,6 +591,7 @@ fn bphandler(
         }
         BreakPoint::Crash => {
             print!("crashed\n");
+            let _lpf = _lpp.as_ref().unwrap();
             _worker.report_crash(_session, &_lpf.0, &_lpf.1,&_lpf.2,_lpf.3);
             return false;
         }

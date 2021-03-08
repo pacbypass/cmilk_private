@@ -19,6 +19,7 @@ falktp = { path = "../shared/falktp" }
 aht = { path = "../shared/aht" }
 atomicvec = { path = "../shared/atomicvec" }
 falkhash = { path = "../shared/falkhash" }
+basic_mutator = { path = "../shared/basic_mutator" }
 spin = "0.5.2"
 volatile = "0.2.6"
 [dependencies.lazy_static]

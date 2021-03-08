@@ -9,6 +9,10 @@ name = "atomicvec"
 version = "0.1.0"
 
 [[package]]
+name = "basic_mutator"
+version = "0.1.0"
+
+[[package]]
 name = "boot_args"
 version = "0.1.0"
 dependencies = [
@@ -46,6 +50,7 @@ version = "0.1.0"
 dependencies = [
  "aht",
  "atomicvec",
+ "basic_mutator",
  "boot_args",
  "core_reqs",
  "cpu",
