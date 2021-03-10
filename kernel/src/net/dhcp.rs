@@ -314,17 +314,13 @@ fn create_dhcp_packet(packet: &mut Packet, xid: u32,
 
 pub fn get_lease(device: Arc<NetDevice>) -> Option<Lease> {
     // Get a "unique" transaction ID
-    print!("hwdp1");
     let xid = cpu::rdtsc() as u32;
 
     // Save off our devices MAC address
-    print!("hwdp2");
     let mac = device.mac();
-    print!("hwdp3");
     // Bind to UDP port 68
     let bind = NetDevice::bind_udp_port(device.clone(), 68)
         .expect("Could not bind to port 68 for dhcp");
-        print!("hwdp4");
     // Construct the DHCP options for the discover
     let mut options = Vec::new();
     DhcpOption::MessageType(MessageType::Discover).serialize(&mut options);
@@ -333,22 +329,17 @@ pub fn get_lease(device: Arc<NetDevice>) -> Option<Lease> {
         DhcpOptionId::ServerIp as u8,
     ]).serialize(&mut options);
     DhcpOption::End.serialize(&mut options);
-    print!("hwdp5");
     // Send the DHCP discover
     let mut packet = device.allocate_packet();
     create_dhcp_packet(&mut packet, xid, mac, &options);
     device.send(packet, true);
-    print!("hwdp6");
     // Things we hope to maybe find in a DHCP offer
     let mut offer_ip:  Option<Ipv4Addr> = None;
     let mut server_ip: Option<Ipv4Addr> = None;
-    print!("hwdp7");
     bind.recv_timeout(DHCP_TIMEOUT, |_pkt, udp| {
         // Check that the destination is us
-        print!("entered1.\n");
         print!("DHCP lease {:02x?} {:02x?}\n", udp.ip.eth.dst_mac, mac);
         //if udp.ip.eth.dst_mac != mac { return None; }
-        print!("entered3.\n");
         // Parse the DHCP packet
         let (header, options) = parse_dhcp_packet(xid, udp)?;
 
@@ -358,7 +349,6 @@ pub fn get_lease(device: Arc<NetDevice>) -> Option<Lease> {
 
         // Save the offer IP
         offer_ip = Some(u32::from_be(header.yiaddr).into());
-        print!("hwdp8");
         // Save the server IP if it was present
         server_ip = options.iter().find_map(|x| {
             if let DhcpOption::ServerIp(ip) = x {
@@ -368,7 +358,6 @@ pub fn get_lease(device: Arc<NetDevice>) -> Option<Lease> {
 
         Some(())
     })?;
-    print!("hwdp9");
     // Attempt to get the offer IP and server IP
     let offer_ip  = offer_ip?;
     let server_ip = server_ip?;
@@ -384,7 +373,6 @@ pub fn get_lease(device: Arc<NetDevice>) -> Option<Lease> {
         DhcpOptionId::SubnetMask  as u8,
     ]).serialize(&mut options);
     DhcpOption::End.serialize(&mut options);
-    print!("hwdp11");
     // Send the DHCP request
     let mut packet = device.allocate_packet();
     create_dhcp_packet(&mut packet, xid, mac, &options);
@@ -393,10 +381,8 @@ pub fn get_lease(device: Arc<NetDevice>) -> Option<Lease> {
     // Things we hope to get from the DHCP ACK
     let mut broadcast_ip = None;
     let mut subnet_mask  = None;
-    print!("hwdp11");
     // Wait for the DHCP ACK
     bind.recv_timeout(DHCP_TIMEOUT, |_pkt, udp| {
-        print!("entered2.\n");
         // Check that the destination is us
         //if udp.ip.eth.dst_mac != mac { return None; }
 
@@ -420,7 +406,6 @@ pub fn get_lease(device: Arc<NetDevice>) -> Option<Lease> {
                 Some((*ip).into())
             } else { None }
         });
-        print!("hwdp19274792");
         Some(())
     })?;
 

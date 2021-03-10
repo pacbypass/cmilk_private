@@ -60,6 +60,7 @@ pub fn fuzz() {
                 )
                 .timeout(1_000_000_000)
                 .inject(inject)
+                .corpus()
                 .bp_handler(bphandler),
             ));
         }

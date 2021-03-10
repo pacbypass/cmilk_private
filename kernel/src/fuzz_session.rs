@@ -2577,6 +2577,9 @@ impl<'a> FuzzSession<'a> {
             },
         };
         print!("files: {}", self.inputs.len());
+        // for x in 0..self.inputs.len(){
+        //     print!("{:#x?}\n", self.inputs.get(x));
+        // }
         
         self
     }
