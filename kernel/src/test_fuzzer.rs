@@ -39,7 +39,7 @@ pub fn fuzz() {
                 crate::fuzz_session::windows::Enlightenment::default())));
 
     loop {
-        let _vmexit = worker.fuzz_case(&mut ());
+        let _vmexit = worker.fuzz_case(&mut (), false);
     }
 }
 

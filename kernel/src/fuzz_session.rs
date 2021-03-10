@@ -52,7 +52,7 @@ const GUEST_PROFILING: bool = false;
 
 /// If enabled, the guest is single stepped and all RIPs are logged during
 /// execution. This is incredibly slow and memory intensive, use for debugging.
-const GUEST_TRACING: bool = true;
+const GUEST_TRACING: bool = false;
 
 /// When set, the APIC will be monitored for writes. This is not done yet, do
 /// not use!
@@ -758,12 +758,19 @@ impl<'a> Worker<'a> {
         }
     }
     pub fn mutate(&mut self, mutator: &mut Mutator) -> Arc<Vec<u8>>{
-        let session = self.session.take().unwrap();
-        // pub fn mutate(&mut self, mutator: &mut Mutator, input: &[u8], mutation_passes: u32)
 
-        let input = self.rand_input();
-        let mutated = session.mutate(mutator, input.unwrap(), self.rng.rand());
-        self.session = Some(session);
+        // print!("getting ref\n");
+        let session = self.session.as_ref().unwrap();
+        // print!("got ref\n");
+        // pub fn mutate(&mut self, mutator: &mut Mutator, input: &[u8], mutation_passes: u32)
+        let mut input = self.rand_input();
+        // print!("got inputtt\n");
+        if input == None{
+            input = Some(&[00, 00, 00, 00]);
+        }
+        // print!("getting mutation\n");
+        let mutated = session.mutate(mutator, input.unwrap(), self.rng.rand() % 20);
+        // print!("got mutation\n");
         mutated
     }
 
@@ -860,7 +867,7 @@ impl<'a> Worker<'a> {
     }
 
     /// Perform a single fuzz case to completion
-    pub fn fuzz_case(&mut self, context: &mut dyn Any) -> VmExit {
+    pub fn fuzz_case(&mut self, context: &mut dyn Any, first_exec: bool) -> VmExit {
         let fuzz_start = cpu::rdtsc();
         
         // Start a timer
@@ -983,7 +990,7 @@ impl<'a> Worker<'a> {
                 break 'vm_loop VmExit::Timeout;
             }
 
-            if GUEST_TRACING {
+            if GUEST_TRACING || first_exec {
                 // Always enable single stepping if `GUEST_TRACING` is true
                 single_steps = 1;
             }
@@ -1148,7 +1155,10 @@ impl<'a> Worker<'a> {
                     // Host interrupt happened, ignore it
                     continue 'vm_loop;
                 }
-                VmExit::Exception(Exception::PageFault { addr, .. }) => {
+                VmExit::Exception(Exception::PageFault { addr, present, write, user, exec }) => {
+                    // print!("\nPAGE FAULT XXX rip {:#x} addr {:#x} present {} write {} user {} exec {}\n", 
+                    //         self.reg(Register::Rip), addr.0, present, write, user, exec);
+
                     // Hook, but also re-inject page faults
                     let ii = self.reg(Register::ExitInterruptionInformation);
                     let ic = self.reg(Register::ExitInterruptionErrorCode);
@@ -2541,10 +2551,12 @@ impl<'a> FuzzSession<'a> {
     }
 
     pub fn mutate(&self, mutator: &mut Mutator, input: &[u8], mutation_passes: usize) -> Arc<Vec<u8>>{
+        // print!("setting input here\n");
         mutator.input.clear();
         mutator.input.extend_from_slice( input);
+        // print!("we set the input here mut passes {}\n", mutation_passes);
         mutator.mutate(mutation_passes, self);
-
+        // print!("mutated, returning\n");
         Arc::new(mutator.input.clone())
     }
 
