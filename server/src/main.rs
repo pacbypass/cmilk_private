@@ -12,8 +12,9 @@ use std::time::{Instant, SystemTime, Duration};
 use std::hash::{Hash, Hasher};
 use std::net::{IpAddr, TcpStream, TcpListener};
 use std::borrow::Cow;
-use std::collections::{BTreeSet, BTreeMap, HashMap};
+use std::collections::{BTreeSet, HashSet, BTreeMap, HashMap};
 use std::collections::hash_map::DefaultHasher;
+use std::path::PathBuf;
 
 use noodle::*;
 use falktp::{CoverageRecord, InputRecord, ServerMessage, CrashType};
@@ -553,6 +554,11 @@ fn handle_client(stream: TcpStream,
                     write!(fd, "{}", &regstate)?;
                 }
             }
+            ServerMessage::Corpus() => {
+                ServerMessage::CorpusResponse(context.corpus.clone())
+                    .serialize(&mut stream).unwrap();
+                stream.flush().unwrap();
+            }
             ServerMessage::Trace(records) => {
                 // Create the traces directory
                 std::fs::create_dir_all("traces").unwrap();
@@ -564,8 +570,8 @@ fn handle_client(stream: TcpStream,
                 let mut coverage_file = File::create(Path::new("traces")
                     .join(&format!("trace_{:016x}", trace_id)))?;
                 for record in records.iter() {
-                    // Update the global coverage database
 
+                    // Update the global coverage database
                     if let Some(module) = &record.module {
                         if format!("{}",module) == "ntoskrnl.exe"{
                             write!(coverage_file, "{}+", "nt")?;
@@ -597,6 +603,7 @@ fn handle_client(stream: TcpStream,
 }
 
 struct Context<'a> {
+    corpus:        Vec<Vec<u8>>,
     file_db:       RwLock<HashMap<u64, (SystemTime, Mapping)>>,
     coverage:      RwLock<BTreeSet<CoverageRecord<'a>>>,
     inputs:        RwLock<BTreeSet<InputRecord<'a>>>,
@@ -608,7 +615,20 @@ struct Context<'a> {
 }
 
 fn main() -> io::Result<()> {
+
+    
+    let mut corpus:Vec<Vec<u8>> = Vec::new();
+    let mut hashdb:HashSet<Vec<u8>> =  HashSet::new();
+
+    let filenames = traverse(&Path::new("corpus"));
+    for fname in filenames.iter(){ 
+        let data = std::fs::read(fname).expect("could not read a file from corpus.");
+        if hashdb.insert(data.clone()){
+            corpus.push(data.clone());
+        }
+    }
     let context = Arc::new(Context {
+        corpus:        corpus,
         file_db:       Default::default(),
         coverage:      Default::default(),
         inputs:        Default::default(),
@@ -642,3 +662,18 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
+fn traverse(dir: &Path) -> Vec<PathBuf>{
+    let mut ret: Vec<PathBuf> = Vec::new();
+    
+    for entry in std::fs::read_dir(dir).expect("COULD NOT READ THIS DIR") {
+        let entry = entry.expect("Path Entry is invalid.").path();
+
+        if entry.is_dir(){
+            ret.append(&mut traverse(&entry));   
+        }
+        else{
+            ret.push(entry);
+        }
+    }
+    ret
+}
