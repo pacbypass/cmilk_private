@@ -741,6 +741,8 @@ impl<'a> Worker<'a> {
         self.enlightenment = enlightenment;
     }
 
+
+
     /// Get a random existing input
     pub fn rand_input(&self) -> Option<&[u8]> {
         // Get access to the session
@@ -2550,6 +2552,37 @@ impl<'a> FuzzSession<'a> {
         server.flush().unwrap();
     }
 
+    // read in inputs 
+    pub fn corpus(self) -> Self{
+        // Quick and dirty way to get a connection to the server,
+        // before we set up the workers :)
+        let netdev = NetDevice::get()
+            .expect("Failed to get network device");
+
+        let mut server = BufferedIo::new(NetDevice::tcp_connect(netdev,
+            &self.server_addr).expect("Failed to connect to server"));
+
+        // Send request for the corpus 
+        ServerMessage::Corpus().serialize(&mut server).unwrap();
+        server.flush().unwrap();
+
+        match ServerMessage::deserialize(&mut server).unwrap() {
+            ServerMessage::CorpusResponse (file) =>{
+                for input in file.iter(){
+                    self.inputs.push(Box::new(Arc::new(input.to_vec())));
+                }
+            },
+            _ => {
+                panic!("failed at receiving the corpus!");
+            },
+        };
+        print!("files: {}", self.inputs.len());
+        
+        self
+    }
+
+
+    // Mutate test case
     pub fn mutate(&self, mutator: &mut Mutator, input: &[u8], mutation_passes: usize) -> Arc<Vec<u8>>{
         // print!("setting input here\n");
         mutator.input.clear();

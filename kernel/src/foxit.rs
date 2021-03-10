@@ -102,15 +102,6 @@ fn inject(_worker: &mut Worker, _context: &mut dyn Any) {
     //     .seed(cpu::rdtsc());
     // let fuzz_input = _worker.mutate(&mut mutator);
 
-
-    // print!("mutated\n");
-    // print!("mutating\n");
-    let fuzz_input = _worker.mutate(
-        _context
-            .downcast_mut::<Mutator>()
-            .expect("could not downcast"),
-    );
-    // print!("mutated\n");
     //print!("{:x}", _worker.reg(Register::Rip));
 
     //let mut input = worker.mutate().unwrap();
@@ -153,6 +144,13 @@ fn inject(_worker: &mut Worker, _context: &mut dyn Any) {
     worker.read_virt_into(VirtAddr(rbx), &mut input);
     print!("{:x?}", input);*/
 
+
+
+    // let input = _worker.mutate(
+    //     _context
+    //         .downcast_mut::<Mutator>()
+    //         .expect("could not downcast"),
+    // );
     let input: Vec<u8> = vec![
         0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x20, 0x0, 0x20, 0x0, 0xa1, 0x0, 0x0, 0xb2, 0xc0, 0xdc,
         0x0, 0x0, 0x0, 0xff, 0xff, 0x0, 0x0, 0x0, 0x0, 0x21, 0xf9, 0x4, 0x1, 0x0, 0x0, 0x0, 0x0,

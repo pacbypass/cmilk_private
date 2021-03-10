@@ -78,6 +78,13 @@ pub enum ServerMessage<'a> {
     /// Log in as a new fuzzer
     Login(u64, u32),
 
+    /// Corpus request message
+    Corpus(),
+
+    /// Response to the corpus message containing contains of the "corpus"
+    /// folder
+    CorpusResponse(Vec<Vec<u8>>),
+
     /// Report new coverage
     Coverage(Cow<'a, [CoverageRecord<'a>]>),
     
