@@ -115,7 +115,8 @@ pub enum ServerMessage<'a> {
         modoff:   CoverageRecord<'a>,
         cpl:      u8,
         typ:      CrashType,
-        regstate: Cow<'a, str>
+        regstate: Cow<'a, str>,
+        input: Vec<u8>,
     },
 
     /// The server has sent any messages related to syncing and the client

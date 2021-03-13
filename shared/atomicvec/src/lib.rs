@@ -1,7 +1,9 @@
 //! An atomic vector with a fixed size capacity and insert-only semantics
+
 #![no_std]
 #![feature(const_generics)]
 #![allow(incomplete_features)]
+
 extern crate alloc;
 
 use core::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
@@ -51,7 +53,6 @@ impl<T, const N: usize> AtomicVec<T, N> {
     pub const fn capacity(&self) -> usize { N }
 
     /// Push an element to the vector
-    #[allow(deprecated)]
     #[track_caller]
     pub fn push(&self, element: Box<T>) {
         // Get a unique index for insertion. We don't do a fetch add here such
@@ -62,8 +63,9 @@ impl<T, const N: usize> AtomicVec<T, N> {
             assert!(cur < N, "AtomicVec out of capacity");
 
             // Attempt to reserve this index
-            if self.in_use.compare_and_swap(cur, cur + 1,
-                                            Ordering::SeqCst) == cur {
+            if self.in_use.compare_exchange(cur, cur + 1,
+                                            Ordering::SeqCst, Ordering::SeqCst)
+                          .unwrap_or_else(|x| x) == cur {
                 break cur;
             }
         };
@@ -119,4 +121,3 @@ mod tests {
         }
     }
 }
-

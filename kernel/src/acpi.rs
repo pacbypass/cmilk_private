@@ -1,5 +1,6 @@
 //! An very lightweight ACPI implementation for extracting basic information
 //! about CPU topography and NUMA memory regions
+
 use core::mem::size_of;
 use core::sync::atomic::{AtomicU32, Ordering, AtomicU8};
 use core::convert::TryInto;
@@ -55,12 +56,14 @@ static TOTAL_CORES: AtomicU32 = AtomicU32::new(0);
 /// List of all valid APICs on the system. The APIC ID is the index into the
 /// array, the array entry `AtomicU8` is the `u8` representation of an
 /// `ApicState` enum
+const ATOMICU8_APIC_STATE_INIT: AtomicU8 = AtomicU8::new(ApicState::None as u8);
 static APICS: [AtomicU8; MAX_CORES] =
-    [AtomicU8::new(ApicState::None as u8); MAX_CORES];
+    [ATOMICU8_APIC_STATE_INIT; MAX_CORES];
 
 /// Mappings of APIC IDs to their memory domains
+const ATOMICU8_INIT: AtomicU8 = AtomicU8::new(0);
 pub static APIC_TO_DOMAIN: [AtomicU8; MAX_CORES] =
-    [AtomicU8::new(0); MAX_CORES];
+    [ATOMICU8_INIT; MAX_CORES];
 
 /// Set the current execution state of a given APIC ID
 pub unsafe fn set_core_state(apic_id: u32, state: ApicState) {
@@ -75,16 +78,16 @@ pub fn core_state(apic_id: u32) -> ApicState {
 }
 
 /// Check in that the current core has booted
-#[allow(deprecated)]
 pub fn core_checkin() {
     /// Number of cores which have checked in
     static CORES_CHECKED_IN: AtomicU32 = AtomicU32::new(0);
 
     // Transition from launched to online
     let old_state = APICS[core!().apic_id().unwrap() as usize]
-        .compare_and_swap(ApicState::Launched as u8,
+        .compare_exchange(ApicState::Launched as u8,
                           ApicState::Online   as u8,
-                          Ordering::SeqCst);
+                          Ordering::SeqCst,
+                          Ordering::SeqCst).unwrap_or_else(|x| x);
 
     if core!().id == 0 {
         // BSP should already be marked online
@@ -525,4 +528,3 @@ unsafe fn parse_srat(ptr: PhysAddr) ->
 
     (apic_affinities, memory_affinities)
 }
-

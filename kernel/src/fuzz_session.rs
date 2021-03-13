@@ -750,12 +750,12 @@ impl<'a> Worker<'a> {
 
         // Get the number of inputs in the database
         let inputs = session.inputs.len();
-
         if inputs > 0 {
             // Get a random input
             session.inputs.get(self.rng.rand() % inputs).map(|x| x.as_slice())
         } else {
             // No inputs in the DB yet
+            print!("NO INPUTS IN DB SIR\n");
             None
         }
     }
@@ -1040,6 +1040,11 @@ impl<'a> Worker<'a> {
             // let input: [u8; 1] = [0xcc];
             // self.write_virt_from(VirtAddr(0x71778622 as u64), &input); // 0x71778622
             match vmexit {
+                // VmExit::Io { inst_len,  gpr } => {
+                    
+                //     // let shit = last_page_fault.as_ref().unwrap();
+                //     // print!("{} {:?} {} {:#x}\n", shit.0, shit.1, shit.2, shit.3);
+                // }
                 VmExit::CpuId {inst_len} =>{
                     
                     let rax = self.reg(Register::Rax) as u32;
@@ -1157,9 +1162,10 @@ impl<'a> Worker<'a> {
                     // Host interrupt happened, ignore it
                     continue 'vm_loop;
                 }
-                VmExit::Exception(Exception::PageFault { addr, present, write, user, exec }) => {
-                    // print!("\nPAGE FAULT XXX rip {:#x} addr {:#x} present {} write {} user {} exec {}\n", 
-                    //         self.reg(Register::Rip), addr.0, present, write, user, exec);
+                // VmExit::Exception(Exception::PageFault { addr, present, write, user, exec }) => {
+                VmExit::Exception(Exception::PageFault { addr, .. }) => {
+                    //  print!("\nPAGE FAULT XXX rip {:#x} addr {:#x} present {} write {} user {} exec {}\n", 
+                    //          self.reg(Register::Rip), addr.0, present, write, user, exec);
 
                     // Hook, but also re-inject page faults
                     let ii = self.reg(Register::ExitInterruptionInformation);
@@ -1242,7 +1248,7 @@ impl<'a> Worker<'a> {
                     continue 'vm_loop;
                 }
                 VmExit::WriteMsr { inst_len } => {
-                    print!("msrwrite\n");
+                    // print!("msrwrite\n");
                     // Get the MSR ID we're writing
                     let msr = self.reg(Register::Rcx);
 
@@ -1602,13 +1608,17 @@ impl<'a> Worker<'a> {
 
         let record = session.crashes.entry_or_insert(
             &(regstate.rip, ct), regstate.rip as usize, || Box::new(()));
+        
+        
         if record.inserted() {
+            let crashing_input = self.fuzz_input.as_ref().unwrap();
             let server = self.server.as_mut().unwrap();
             ServerMessage::Crash {
                 modoff:   cr.clone(),
                 cpl:      cpl,
                 typ:      ct,
-                regstate: Cow::Owned(format!("{}", regstate))
+                regstate: Cow::Owned(format!("{}", regstate)),
+                input: crashing_input.to_vec(),
             }.serialize(server).unwrap();
             server.flush().unwrap();
         }

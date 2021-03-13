@@ -15,7 +15,8 @@ use crate::core_locals::LockInterrupts;
 
 /// If a given interrupt requires an EOI when it is handled, the corresponding
 /// offset into this table will indicate `true`.
-static EOI_REQUIRED: [AtomicBool; 256] = [AtomicBool::new(false); 256];
+const ATOMICBOOL_INIT: AtomicBool = AtomicBool::new(false);
+static EOI_REQUIRED: [AtomicBool; 256] = [ATOMICBOOL_INIT; 256];
 
 /// If set to `true`, EOIs will be handled where `EOI_REQUIRED` is set, and
 /// no handler will be invoked.
@@ -373,7 +374,6 @@ pub unsafe extern fn interrupt_handler(
             cpu::halt();
         }
     }
-
 
     // Handle page faults
     if number == 0xe {
@@ -1222,4 +1222,3 @@ define_int_handler 255, 0
 .att_syntax
 
 "#);
-

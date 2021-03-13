@@ -4,6 +4,7 @@
 #![feature(const_generics)]
 #![allow(incomplete_features)]
 #![no_std]
+
 extern crate alloc;
 
 use core::mem::MaybeUninit;
@@ -93,7 +94,6 @@ impl<K, V, const N: usize> Aht<K, V, N> {
     /// Returns a reference to the inserted or old entry in the table
     /// If the key was already in the table, returns `Err(ref old entry)`
     /// otherwise it returns `Ok(ref new entry)`
-    #[allow(deprecated)]
     pub fn entry_or_insert<F, Q>(&self, key: &Q, mut hash: usize,
                                  insert: F) -> Entry<V>
             where F: FnOnce() -> Box<V>,
@@ -113,8 +113,9 @@ impl<K, V, const N: usize> Aht<K, V, N> {
             // Try to get exclusive access to this hash table entry
             if self.hash_table[hti].0.load(Ordering::SeqCst) == empty &&
                     self.hash_table[hti].0
-                        .compare_and_swap(empty, filling,
-                                          Ordering::SeqCst) == empty {
+                        .compare_exchange(empty, filling,
+                                          Ordering::SeqCst, Ordering::SeqCst)
+                        .unwrap_or_else(|x| x) == empty {
                 // Request the caller to create the entry
                 let ent = Box::into_raw(insert());
 
@@ -215,4 +216,3 @@ mod test {
         assert!(*foo3 == 57);
     }
 }
-

@@ -512,7 +512,7 @@ fn handle_client(stream: TcpStream,
                 } else {
                 }
             },
-            ServerMessage::Crash { modoff, cpl, typ, regstate } => {
+            ServerMessage::Crash { modoff, cpl, typ, regstate, input } => {
                 // Create the crashes directory
                 std::fs::create_dir_all("crashes").unwrap();
 
@@ -549,9 +549,14 @@ fn handle_client(stream: TcpStream,
                     };
                     
                     // Create the crash file
+
+                    let filename_stats = format!("crashes/{}.regs.txt", filename);
+                    let filename_crash = format!("crashes/{}.input", filename);
                     let mut fd = File::create(Path::new("crashes")
                         .join(&filename))?;
                     write!(fd, "{}", &regstate)?;
+
+                    std::fs::write(filename_crash, &input).expect("couldnt crash write file\n");
                 }
             }
             ServerMessage::Corpus() => {
