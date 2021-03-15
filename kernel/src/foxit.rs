@@ -58,7 +58,7 @@ pub fn fuzz() {
                     "mapped_foxit.falkdump",
                     |_worker| {},
                 )
-                .timeout(100_000_000)
+                // .timeout(1000_000_000)
                 .inject(inject)
                 .corpus()
                 .bp_handler(bphandler),
@@ -74,9 +74,9 @@ pub fn fuzz() {
         crate::fuzz_session::windows::Enlightenment::default(),
     )));
 
-    // if core!().id != 0 {
-    //     cpu::halt();
-    // }
+    if core!().id != 0 {
+        cpu::halt();
+    }
 
     let mut mutator = Mutator::new()
         .max_input_size(10 * 1024 * 1024)
@@ -84,13 +84,13 @@ pub fn fuzz() {
 
     let mut first_exec = true;
     loop {
-        let _vmexit = worker.fuzz_case(&mut mutator, first_exec);
+        let _vmexit = worker.fuzz_case(&mut mutator, false);
         first_exec = false;
 
-        // if _vmexit != VmExit::Exception(Exception::Breakpoint){
-        //     print!("vmexit {:#x?}\n", _vmexit);
-        //     print!("HERE HERE NIGGA HERE\n");
-        // }
+        if _vmexit != VmExit::Exception(Exception::Breakpoint){
+            print!("vmexit {:#x?}\n", _vmexit);
+            print!("HERE HERE NIGGA HERE\n");
+        }
         
     }
 }
@@ -150,6 +150,7 @@ fn inject(_worker: &mut Worker, _context: &mut dyn Any) {
     //         .downcast_mut::<Mutator>()
     //         .expect("could not downcast"),
     // );
+    
     let input: Vec<u8> = vec![
         0xff, 0x4f, 0xff, 0x51, 0x0, 0x29, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x0, 0x0, 0xfc, 0x0, 0x0,
         0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xff, 0x0, 0x0, 0x0, 0x0, 0x93, 0x0, 0x0, 0x0,
@@ -183,10 +184,10 @@ enum BreakPoint {
     //Crash = 0xfffff807`68a6d073,
 
     // ntdll!KiUserExceptionDispatch
-    //Crash = 0x7ffd648b3540,
+    // Crash = 0xfffff80768a5bfb0,
 
-    // nt!KiPageFault+0x3f3
-    Crash = 0xfffff80768a6d094,
+    // // nt!KiPageFault+0x3de
+    Crash = 0xfffff80768a6d05e,
     X86usercreatefile = 0x75c63bb0,
     //X86usercreatefiletwo = 0x756e3bb0,
     X86userwritefile = 0x75c64020,
@@ -212,8 +213,14 @@ fn bphandler(
     _session: &FuzzSession,
 ) -> bool {
     let rip: BreakPoint = unsafe { core::mem::transmute(_worker.reg(Register::Rip)) };
-
-    // print!("bp handler hit {:?}\n", rip);
+    if rip as u64 == BreakPoint::Crash as u64 {
+        let _lpf = _lpp.as_ref().unwrap();
+        // print!("crashed {}\n", _lpf.2);
+        _worker.report_crash(_session, &_lpf.0, &_lpf.1, &_lpf.2, _lpf.3);
+        return false;
+    }
+    let rip: BreakPoint = unsafe { core::mem::transmute(_worker.reg(Register::Rip)) };
+    print!("bp handler hit {:?}\n", rip);
 
     let rsp = _worker.reg(Register::Rsp);
     let return_address = _worker
@@ -338,19 +345,19 @@ fn bphandler(
             _worker.fuzz_input = Some(input);
             return true;
         }
-        BreakPoint::Crash => {
-            let _lpf = _lpp.as_ref().unwrap();
-            // print!("crashed {}\n", _lpf.2);
-            _worker.report_crash(_session, &_lpf.0, &_lpf.1, &_lpf.2, _lpf.3);
-            return false;
-        }
+        // BreakPoint::Crash => {
+        //     let _lpf = _lpp.as_ref().unwrap();
+        //     // print!("crashed {}\n", _lpf.2);
+        //     _worker.report_crash(_session, &_lpf.0, &_lpf.1, &_lpf.2, _lpf.3);
+        //     return false;
+        // }
         BreakPoint::End => {
             //print!("case finished\n");
             return false;
         }
-        // _ => {
-        //     return false;
-        // } // _ => {
+        _ => {
+            return false;
+        } // _ => {
           //     panic!("bad ptr addy: {:x}\n", _worker.reg(Register::Rip))
           // }
           // BreakPoint::NtReadFile => {

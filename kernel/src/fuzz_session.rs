@@ -52,7 +52,7 @@ const GUEST_PROFILING: bool = false;
 
 /// If enabled, the guest is single stepped and all RIPs are logged during
 /// execution. This is incredibly slow and memory intensive, use for debugging.
-const GUEST_TRACING: bool = false;
+const GUEST_TRACING: bool = true;
 
 /// When set, the APIC will be monitored for writes. This is not done yet, do
 /// not use!
@@ -1176,6 +1176,11 @@ impl<'a> Worker<'a> {
                     self.set_reg(Register::EntryInstructionLength,       il);
                     self.set_reg(Register::Cr2, addr.0);
 
+                    // XXX: find a better way to do it like in falkervisor in fn translate
+                    let input: [u8; 1] = [0xcc];
+                    if let Some(lpf) = last_page_fault{
+                        self.write_virt_from(VirtAddr(0xfffff80768a6d05e), &input);
+                    }
                     let rip = self.reg(Register::Rip);
                     last_page_fault = Some((
                         self.resolve_module(rip),
