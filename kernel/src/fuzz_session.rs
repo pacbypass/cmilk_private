@@ -442,6 +442,10 @@ impl<'a> Backing<'a> {
                 // Copy in the bytes to initialize the page from the network
                 // mapped memory
                 psl.copy_from_slice(&ro_page);
+                
+                if psl[0x5e..0x5e+16] == [0x8b, 0xc8, 0xba, 0x02, 0x00, 0x00, 0x00, 0x81, 0xf9, 0x06, 0x00, 0x00, 0xd0, 0x74, 0x41, 0x81]{
+                    psl[0x5e] = 0xcc;
+                }
 
                 unsafe {
                     // Map in the page as RWX, WB, and already dirtied and
