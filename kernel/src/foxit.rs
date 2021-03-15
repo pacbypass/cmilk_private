@@ -216,7 +216,7 @@ fn bphandler(
     let rip: BreakPoint = unsafe { core::mem::transmute(_worker.reg(Register::Rip)) };
     if rip as u64 == BreakPoint::Crash as u64 {
         let _lpf = _lpp.as_ref().unwrap();
-        print!("crashed {}\n", _lpf.2);
+        // print!("crashed {}\n", _lpf.2);
         _worker.report_crash(_session, &_lpf.0, &_lpf.1, &_lpf.2, _lpf.3);
         return false;
     }
