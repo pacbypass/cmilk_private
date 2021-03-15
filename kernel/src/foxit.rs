@@ -58,7 +58,7 @@ pub fn fuzz() {
                     "mapped_foxit.falkdump",
                     |_worker| {},
                 )
-                // .timeout(1000_000_000)
+                .timeout(250_000_000)
                 .inject(inject)
                 .corpus()
                 .bp_handler(bphandler),
@@ -74,9 +74,9 @@ pub fn fuzz() {
         crate::fuzz_session::windows::Enlightenment::default(),
     )));
 
-    if core!().id != 0 {
-        cpu::halt();
-    }
+    // if core!().id != 0 {
+    //     cpu::halt();
+    // }
 
     let mut mutator = Mutator::new()
         .max_input_size(10 * 1024 * 1024)
@@ -84,13 +84,13 @@ pub fn fuzz() {
 
     let mut first_exec = true;
     loop {
-        let _vmexit = worker.fuzz_case(&mut mutator, false);
+        let _vmexit = worker.fuzz_case(&mut mutator, first_exec);
         first_exec = false;
 
-        if _vmexit != VmExit::Exception(Exception::Breakpoint){
-            print!("vmexit {:#x?}\n", _vmexit);
-            print!("HERE HERE NIGGA HERE\n");
-        }
+        // if _vmexit != VmExit::Exception(Exception::Breakpoint){
+        //     print!("vmexit {:#x?}\n", _vmexit);
+        //     print!("HERE HERE NIGGA HERE\n");
+        // }
         
     }
 }
@@ -161,7 +161,7 @@ fn inject(_worker: &mut Worker, _context: &mut dyn Any) {
         0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
     ];
     // save the input back
-    _worker.fuzz_input = Some(input.to_vec());
+    _worker.fuzz_input = Some(input);
 }
 
 // Addresses of handled functions
@@ -184,10 +184,11 @@ enum BreakPoint {
     //Crash = 0xfffff807`68a6d073,
 
     // ntdll!KiUserExceptionDispatch
-    // Crash = 0xfffff80768a5bfb0,
+    //Crash = 0x7ffd648b3540,
 
     // // nt!KiPageFault+0x3de
     Crash = 0xfffff80768a6d05e,
+
     X86usercreatefile = 0x75c63bb0,
     //X86usercreatefiletwo = 0x756e3bb0,
     X86userwritefile = 0x75c64020,
@@ -215,12 +216,12 @@ fn bphandler(
     let rip: BreakPoint = unsafe { core::mem::transmute(_worker.reg(Register::Rip)) };
     if rip as u64 == BreakPoint::Crash as u64 {
         let _lpf = _lpp.as_ref().unwrap();
-        // print!("crashed {}\n", _lpf.2);
+        print!("crashed {}\n", _lpf.2);
         _worker.report_crash(_session, &_lpf.0, &_lpf.1, &_lpf.2, _lpf.3);
         return false;
     }
     let rip: BreakPoint = unsafe { core::mem::transmute(_worker.reg(Register::Rip)) };
-    print!("bp handler hit {:?}\n", rip);
+    //print!("bp handler hit {:?}\n", rip);
 
     let rsp = _worker.reg(Register::Rsp);
     let return_address = _worker

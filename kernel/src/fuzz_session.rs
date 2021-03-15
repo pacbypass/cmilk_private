@@ -52,7 +52,7 @@ const GUEST_PROFILING: bool = false;
 
 /// If enabled, the guest is single stepped and all RIPs are logged during
 /// execution. This is incredibly slow and memory intensive, use for debugging.
-const GUEST_TRACING: bool = true;
+const GUEST_TRACING: bool = false;
 
 /// When set, the APIC will be monitored for writes. This is not done yet, do
 /// not use!
@@ -396,7 +396,9 @@ impl<'a> Backing<'a> {
 
         // Get a slice to the original read-only page
         let ro_page = unsafe { mm::slice_phys_mut(orig_page, 4096) };
-
+        if ro_page[0x5e..0x5e+16] == [0x8b, 0xc8, 0xba, 0x02, 0x00, 0x00, 0x00, 0x81, 0xf9, 0x06, 0x00, 0x00, 0xd0, 0x74, 0x41, 0x81]{
+            ro_page[0x5e] = 0xcc;
+        }
         let page = if let Some(Mapping { pte: Some(pte), page: Some(_), .. }) =
                 translation {
             // Promote the original page via CoW
@@ -411,6 +413,7 @@ impl<'a> Backing<'a> {
             // Copy in the bytes to initialize the page from the network
             // mapped memory
             psl.copy_from_slice(&ro_page);
+
 
             // Promote the page via CoW
             unsafe {
@@ -443,9 +446,10 @@ impl<'a> Backing<'a> {
                 // mapped memory
                 psl.copy_from_slice(&ro_page);
                 
-                if psl[0x5e..0x5e+16] == [0x8b, 0xc8, 0xba, 0x02, 0x00, 0x00, 0x00, 0x81, 0xf9, 0x06, 0x00, 0x00, 0xd0, 0x74, 0x41, 0x81]{
-                    psl[0x5e] = 0xcc;
-                }
+                // // this will always be at least 0x1000 if the page is 4k
+                // if psl[0x5e..0x5e+16] == [0x8b, 0xc8, 0xba, 0x02, 0x00, 0x00, 0x00, 0x81, 0xf9, 0x06, 0x00, 0x00, 0xd0, 0x74, 0x41, 0x81]{
+                //     psl[0x5e] = 0xcc;
+                // }
 
                 unsafe {
                     // Map in the page as RWX, WB, and already dirtied and
@@ -1180,11 +1184,6 @@ impl<'a> Worker<'a> {
                     self.set_reg(Register::EntryInstructionLength,       il);
                     self.set_reg(Register::Cr2, addr.0);
 
-                    // XXX: find a better way to do it like in falkervisor in fn translate
-                    let input: [u8; 1] = [0xcc];
-                    if let Some(lpf) = last_page_fault{
-                        self.write_virt_from(VirtAddr(0xfffff80768a6d05e), &input);
-                    }
                     let rip = self.reg(Register::Rip);
                     last_page_fault = Some((
                         self.resolve_module(rip),
