@@ -1048,11 +1048,15 @@ impl<'a> Worker<'a> {
             // let input: [u8; 1] = [0xcc];
             // self.write_virt_from(VirtAddr(0x71778622 as u64), &input); // 0x71778622
             match vmexit {
-                // VmExit::Io { inst_len,  gpr } => {
+                VmExit::Io { inst_len,  .. } => {
                     
-                //     // let shit = last_page_fault.as_ref().unwrap();
-                //     // print!("{} {:?} {} {:#x}\n", shit.0, shit.1, shit.2, shit.3);
-                // }
+                    // let shit = last_page_fault.as_ref().unwrap();
+                    // print!("{} {:?} {} {:#x}\n", shit.0, shit.1, shit.2, shit.3);
+
+                    let rip = self.reg(Register::Rip);
+                    self.set_reg(Register::Rip, rip.wrapping_add(inst_len));
+                    continue 'vm_loop;
+                }
                 VmExit::CpuId {inst_len} =>{
                     
                     let rax = self.reg(Register::Rax) as u32;
