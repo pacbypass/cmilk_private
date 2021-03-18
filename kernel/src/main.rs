@@ -30,7 +30,7 @@ pub mod net;
 pub mod time;
 pub mod vtx;
 pub mod fuzz_session;
-pub mod test_fuzzer;
+// pub mod test_fuzzer;
 pub mod ept;
 pub mod paging;
 pub mod foxit;

@@ -1,5 +1,5 @@
 use crate::core_locals::LockInterrupts;
-use crate::fuzz_session::{BasicRegisterState, FuzzSession, Worker};
+use crate::fuzz_session::{BasicRegisterState, FuzzSession, Worker, Rng, ContextStructure};
 use crate::vtx::*;
 use alloc::boxed::Box;
 use alloc::sync::Arc;
@@ -7,6 +7,7 @@ use basic_mutator::Mutator;
 use core::any::Any;
 use falktp::CoverageRecord;
 use page_table::VirtAddr;
+use alloc::vec::Vec;
 /*
 !reload /user
 x nt!ntwritefile;
@@ -39,6 +40,7 @@ use lockcell::LockCell;
 
 //const SIZE: usize = 20000;
 pub fn fuzz() {
+    
     //if core!().id != 0 { cpu::halt(); }
 
     static SESSION: LockCell<Option<Arc<FuzzSession>>, LockInterrupts> = LockCell::new(None);
@@ -47,9 +49,6 @@ pub fn fuzz() {
     let session = {
         let mut session = SESSION.lock();
         if session.is_none() {
-            // for _ in 0..26 {
-            //     print!("\n");
-            // }
             print!("LETS FUZZ! 192.168.2.175:1911\n");
             *session = Some(Arc::new(
                 FuzzSession::from_falkdump(
@@ -57,7 +56,7 @@ pub fn fuzz() {
                     "mapped_foxit.falkdump",
                     |_worker| {},
                 )
-                .timeout(250_000_000)
+                .timeout(25_000_000)
                 .inject(inject)
                 .corpus()
                 .bp_handler(bphandler),
@@ -77,24 +76,37 @@ pub fn fuzz() {
     //     cpu::halt();
     // }
 
-    let mut mutator = Mutator::new()
-        .max_input_size(10 * 1024 * 1024)
-        .seed(cpu::rdtsc());
-
-    let mut first_exec = true;
+    let mut ctr: u64 = 1;
+    let id:u64 = core!().id as u64 +1;
+    let tsc = cpu::rdtsc();
+    let mut context: ContextStructure = ContextStructure {
+        mutator: Mutator::new().max_input_size(15 * 1024 * 1024).seed(cpu::rdtsc()+(core!().id*32) as u64),
+        base_rdtsc: tsc,
+        rdtsc: tsc,
+        debug: false,
+        first_exec: true,
+    };
     loop {
-        let _vmexit = worker.fuzz_case(&mut mutator, first_exec);
-        first_exec = false;
-
+        let _vmexit = worker.fuzz_case(&mut context);
+        context.first_exec = (ctr % (2400 / (id))) == 0;
+        ctr+=1;
+        // print!("vmexit {:#x?}\n", _vmexit);
         if _vmexit != VmExit::Exception(Exception::Breakpoint){
             print!("vmexit {:#x?}\n", _vmexit);
         }
-        
+        if _vmexit == (VmExit::Io { inst_len: 1, gpr: 0 }){
+            print!("tracing\n");
+            context.debug = true;
+            worker.fuzz_case(&mut context);
+            context.debug = false;
+        }
+
+        context.rdtsc = context.base_rdtsc;
     }
 }
 
 //mutate testcase, get's called on each fuzz case
-fn inject(_worker: &mut Worker, _context: &mut dyn Any) {
+fn inject(_worker: &mut Worker, _context: &mut ContextStructure) {
     // print!("mutating\n");
     // let mut mutator = Mutator::new()
     //     .max_input_size(5 * 1024 * 1024)
@@ -105,7 +117,8 @@ fn inject(_worker: &mut Worker, _context: &mut dyn Any) {
 
     //let mut input = worker.mutate().unwrap();
     let input: [u8; 1] = [0xcc];
-
+    
+    
     //_worker.write_virt_from(VirtAddr(BreakPoint::NtCreateFile as u64), &input);
     _worker.write_virt_from(VirtAddr(BreakPoint::Crash as u64), &input);
     //_worker.write_virt_from(VirtAddr(BreakPoint::NtWriteFile as u64), &input);
@@ -125,6 +138,7 @@ fn inject(_worker: &mut Worker, _context: &mut dyn Any) {
         VirtAddr(BreakPoint::X86usersetfilesizepointerex as u64),
         &input,
     );
+    _worker.write_virt_from(VirtAddr(BreakPoint::GetSystemTimePreciseAsFileTime as u64), &input);
     //_worker.write_virt_from(VirtAddr(BreakPoint::X86usersetfilesizepointerextwo as u64), &input);
     //_worker.write_virt_from(VirtAddr(BreakPoint::X86userdeletefiletwo as u64), &input);
     _worker.write_virt_from(VirtAddr(BreakPoint::X86userdeletefile as u64), &input); // X86userFlushFileBufferstwo
@@ -143,12 +157,12 @@ fn inject(_worker: &mut Worker, _context: &mut dyn Any) {
     worker.read_virt_into(VirtAddr(rbx), &mut input);
     print!("{:x?}", input);*/
 
-    let input = _worker.mutate(
-        _context
-            .downcast_mut::<Mutator>()
-            .expect("could not downcast"),
-    );
-    
+    if !_context.debug{
+        let input = _worker.mutate(
+            &mut _context.mutator,
+        );
+        _worker.fuzz_input = Some(input.to_vec());
+    }
     // let input: Vec<u8> = vec![
     //     0xff, 0x4f, 0xff, 0x51, 0x0, 0x29, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x0, 0x0, 0xfc, 0x0, 0x0,
     //     0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xff, 0x0, 0x0, 0x0, 0x0, 0x93, 0x0, 0x0, 0x0,
@@ -159,7 +173,7 @@ fn inject(_worker: &mut Worker, _context: &mut dyn Any) {
     //     0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
     // ];
     // save the input back
-    _worker.fuzz_input = Some(input.to_vec());
+    
 }
 
 // Addresses of handled functions
@@ -185,8 +199,9 @@ enum BreakPoint {
     //Crash = 0x7ffd648b3540,
 
     // // nt!KiPageFault+0x3de
-    Crash = 0xfffff80768a6d05e,
+    Crash = 0xfffff80768a6d094,
 
+    GetSystemTimePreciseAsFileTime = 0x772be330,
     X86usercreatefile = 0x75c63bb0,
     //X86usercreatefiletwo = 0x756e3bb0,
     X86userwritefile = 0x75c64020,
@@ -210,6 +225,7 @@ fn bphandler(
     _worker: &mut Worker,
     _lpp: &Option<(CoverageRecord, VmExit, BasicRegisterState, u8)>,
     _session: &FuzzSession,
+    context: &mut ContextStructure,
 ) -> bool {
     let rip: BreakPoint = unsafe { core::mem::transmute(_worker.reg(Register::Rip)) };
     if rip as u64 == BreakPoint::Crash as u64 {
@@ -230,8 +246,10 @@ fn bphandler(
             _worker.mod_reg(Register::Rsp, |x| x + 0x8);
             _worker.set_reg(Register::Rip, return_address as u64);
             _worker.set_reg(Register::Rax, 1);
-            return true;
+            print!("flushbufs\n");
+            return false;
         }
+        
         BreakPoint::X86userdeletefile => {
             _worker.mod_reg(Register::Rsp, |x| x + 0x8);
             _worker.set_reg(Register::Rip, return_address as u64);
@@ -255,6 +273,16 @@ fn bphandler(
             _worker.mod_reg(Register::Rsp, |x| x + 0x20);
             _worker.set_reg(Register::Rip, return_address as u64);
             _worker.set_reg(Register::Rax, 0x696);
+            return true;
+        }
+        BreakPoint::GetSystemTimePreciseAsFileTime =>{
+            let addr = rsp+0x8;
+            let base_large_integer = _worker
+                .read_virt::<u32>(VirtAddr(addr))
+                .expect("Couldn't get the virtaddr of the large integer.\n");
+            context.rdtsc+=5000000;
+            _worker.write_virt::<u64>(VirtAddr(base_large_integer as u64), context.rdtsc );
+
             return true;
         }
         BreakPoint::X86usergetfilesizeex => {
@@ -323,11 +351,19 @@ fn bphandler(
             //print!("buf_buf {:#x}\n", )
             // Write back the fuzz_input into the guest memory.
             let input = _worker.fuzz_input.take().unwrap();
-            let slice = &input[..len as usize];
+
+            let slice = if input.len()>=len as usize{
+                &input[..len as usize]
+            }
+            else{
+                &[0; 16]
+            };
             //print!("slice {}")
-            _worker
-                .write_virt_from(VirtAddr(buf as u64), slice)
-                .expect("Error writing fuzz case data to buffer.\n");
+            let tx = _worker
+                .write_virt_from(VirtAddr(buf as u64), slice);
+            if tx ==None{
+                print!("I JUST FAILED TO WRITE INTO IT {} {}\n", len, slice.len());
+            }
 
             // let mut inputt: [u8; 16] = [0; 16];
             // // inject the input into the target program
@@ -355,6 +391,7 @@ fn bphandler(
             return false;
         }
         _ => {
+            print!("unexpected! {:#x} \n", _worker.reg(Register::Rip));
             return false;
         } // _ => {
           //     panic!("bad ptr addy: {:x}\n", _worker.reg(Register::Rip))

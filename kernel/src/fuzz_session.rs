@@ -186,6 +186,15 @@ impl Rng {
     }
 }
 
+
+pub struct ContextStructure{
+    pub mutator: Mutator,
+    pub base_rdtsc: u64,
+    pub debug: bool, 
+    pub rdtsc: u64,
+    pub first_exec: bool,
+}
+
 /// Statistics collected about number of fuzz cases and VM exits
 ///
 /// This structure is synced on `STATISTIC_SYNC_INTERVAL` from the workers to
@@ -211,6 +220,8 @@ pub struct Statistics {
     /// Number of VM exits
     vm_exits: u64,
 }
+
+
 
 impl Statistics {
     /// Sync the statistics in `self` into `master`, resetting `self`'s
@@ -397,7 +408,8 @@ impl<'a> Backing<'a> {
         // Get a slice to the original read-only page
         let ro_page = unsafe { mm::slice_phys_mut(orig_page, 4096) };
         if ro_page[0x5e..0x5e+16] == [0x8b, 0xc8, 0xba, 0x02, 0x00, 0x00, 0x00, 0x81, 0xf9, 0x06, 0x00, 0x00, 0xd0, 0x74, 0x41, 0x81]{
-            ro_page[0x5e] = 0xcc;
+            ro_page[0x94] = 0xcc;
+            print!("pf bp applied\n");
         }
         let page = if let Some(Mapping { pte: Some(pte), page: Some(_), .. }) =
                 translation {
@@ -776,10 +788,10 @@ impl<'a> Worker<'a> {
         let mut input = self.rand_input();
         // print!("got inputtt\n");
         if input == None{
-            input = Some(&[00, 00, 00, 00]);
+            input = Some(&[00; 17]);
         }
         // print!("getting mutation\n");
-        let mutated = session.mutate(mutator, input.unwrap(), self.rng.rand() % 20);
+        let mutated = session.mutate(mutator, input.unwrap(), self.rng.rand() % 9);
         // print!("got mutation\n");
         mutated
     }
@@ -877,7 +889,10 @@ impl<'a> Worker<'a> {
     }
 
     /// Perform a single fuzz case to completion
-    pub fn fuzz_case(&mut self, context: &mut dyn Any, first_exec: bool) -> VmExit {
+    pub fn fuzz_case(&mut self, context: &mut ContextStructure) -> VmExit {
+
+        let first_exec = context.first_exec;
+        let debug = context.debug;
         let fuzz_start = cpu::rdtsc();
         
         // Start a timer
@@ -990,7 +1005,7 @@ impl<'a> Worker<'a> {
         let mut last_page_fault:
             Option<(CoverageRecord, VmExit, BasicRegisterState, u8)> = None;
 
-        if GUEST_TRACING {
+        if GUEST_TRACING || first_exec || debug {
             // Clear the execution trace
             self.trace.clear();
         }
@@ -1000,7 +1015,7 @@ impl<'a> Worker<'a> {
                 break 'vm_loop VmExit::Timeout;
             }
 
-            if GUEST_TRACING || first_exec {
+            if GUEST_TRACING || first_exec || debug {
                 // Always enable single stepping if `GUEST_TRACING` is true
                 single_steps = 1;
             }
@@ -1048,15 +1063,15 @@ impl<'a> Worker<'a> {
             // let input: [u8; 1] = [0xcc];
             // self.write_virt_from(VirtAddr(0x71778622 as u64), &input); // 0x71778622
             match vmexit {
-                VmExit::Io { inst_len,  .. } => {
+                // VmExit::Io { inst_len,  .. } => {
                     
-                    // let shit = last_page_fault.as_ref().unwrap();
-                    // print!("{} {:?} {} {:#x}\n", shit.0, shit.1, shit.2, shit.3);
+                //     // let shit = last_page_fault.as_ref().unwrap();
+                //     // print!("{} {:?} {} {:#x}\n", shit.0, shit.1, shit.2, shit.3);
 
-                    let rip = self.reg(Register::Rip);
-                    self.set_reg(Register::Rip, rip.wrapping_add(inst_len));
-                    continue 'vm_loop;
-                }
+                //     let rip = self.reg(Register::Rip);
+                //     self.set_reg(Register::Rip, rip.wrapping_add(inst_len));
+                //     continue 'vm_loop;
+                // }
                 VmExit::CpuId {inst_len} =>{
                     
                     let rax = self.reg(Register::Rax) as u32;
@@ -1151,10 +1166,10 @@ impl<'a> Worker<'a> {
                         //print!("apic\n");
                         if addr.0 == 0xfee0_0300{
                             //let mut input: [u8; 60] = [0; 60];
-                            let rip      = self.reg(Register::Rip);
+                            // let rip      = self.reg(Register::Rip);
                             //inject the input into the target program
                             //self.read_virt_into(VirtAddr(rip), &mut input);
-                            print!("hit apic, most likely disk access. {}", self.resolve_module(rip));
+                            print!("hit apic\n");
                             //print!("{:x?}", input);
                         }
                     }
@@ -1210,7 +1225,7 @@ impl<'a> Worker<'a> {
                     //print!("BREAKPOINT HIT WOOHOO\n");
                     //print!("{}", rip);
                     if let Some(breakpoint_handler) = session.breakpoint_handler {
-                        if breakpoint_handler(self, &last_page_fault, &session ) {
+                        if breakpoint_handler(self, &last_page_fault, &session, context ) {
                             continue 'vm_loop;
                         }
                     }
@@ -1446,7 +1461,7 @@ impl<'a> Worker<'a> {
                         apic_write = None;
                     }
 
-                    if GUEST_TRACING {
+                    if GUEST_TRACING || debug {
                         // Log all RIPs executed when in tracing mode
                         let rip = self.reg(Register::Rip);
                         // if rip == 0x71778622{
@@ -1552,7 +1567,7 @@ impl<'a> Worker<'a> {
             self.sync = time::future(STATISTIC_SYNC_INTERVAL);
         }
 
-        if GUEST_TRACING {
+        if GUEST_TRACING || debug {
             // Report the guest trace
             ServerMessage::Trace(
                 Cow::Borrowed(self.trace.as_slice())
@@ -2030,11 +2045,11 @@ impl<'a> Worker<'a> {
     }
 }
 
-type InjectCallback<'a> = fn(&mut Worker<'a>, &mut dyn Any);
+type InjectCallback<'a> = fn(&mut Worker<'a>, &mut ContextStructure);
 
 type VmExitFilter<'a> = fn(&mut Worker<'a>, &VmExit) -> bool;
 //type BpHandler<'a> = fn(&mut Worker<'a>) -> bool;
-type BpHandler<'a> = fn(&mut Worker<'a>, &Option<(CoverageRecord, VmExit, BasicRegisterState, u8)>, &FuzzSession) -> bool;
+type BpHandler<'a> = fn(&mut Worker<'a>, &Option<(CoverageRecord, VmExit, BasicRegisterState, u8)>, &FuzzSession, &mut ContextStructure) -> bool;
 /// A session for multiple workers to fuzz a shared job
 pub struct FuzzSession<'a> {
     /// Master VM state
@@ -2598,7 +2613,7 @@ impl<'a> FuzzSession<'a> {
                 panic!("failed at receiving the corpus!");
             },
         };
-        print!("files: {}", self.inputs.len());
+        print!("files: {}\n", self.inputs.len());
         // for x in 0..self.inputs.len(){
         //     print!("{:#x?}\n", self.inputs.get(x));
         // }
