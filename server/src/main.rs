@@ -628,7 +628,7 @@ fn main() -> io::Result<()> {
     let filenames = traverse(&Path::new("corpus"));
     for fname in filenames.iter(){ 
         let data = std::fs::read(fname).expect("could not read a file from corpus.");
-        if hashdb.insert(data.clone()){
+        if hashdb.insert(data.clone()) && data.len() >= 16{
             corpus.push(data.clone());
         }
     }

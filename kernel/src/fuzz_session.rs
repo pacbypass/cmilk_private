@@ -193,6 +193,9 @@ pub struct ContextStructure{
     pub debug: bool, 
     pub rdtsc: u64,
     pub first_exec: bool,
+    pub dry_run: bool,
+    pub cur_input: usize,
+    pub len_of_inputs: usize,
 }
 
 /// Statistics collected about number of fuzz cases and VM exits
@@ -761,6 +764,19 @@ impl<'a> Worker<'a> {
         self.enlightenment = enlightenment;
     }
 
+    /// Get length of inputs
+    pub fn len_of_inputs(&self) -> usize {
+        // Get access to the session
+        let session = self.session.as_ref().unwrap();
+
+        // Get the number of inputs in the database
+        session.inputs.len()
+    }
+
+    pub fn get_input_at_idx(&self, idx: usize) -> Option<&[u8]> {
+        let session = self.session.as_ref().unwrap();
+        session.inputs.get(idx).map(|x| x.as_slice())
+    }
 
 
     /// Get a random existing input
@@ -779,10 +795,10 @@ impl<'a> Worker<'a> {
             None
         }
     }
-    pub fn mutate(&mut self, mutator: &mut Mutator) -> Arc<Vec<u8>>{
+    pub fn mutate(&mut self, mutator: &mut Mutator){
 
         // print!("getting ref\n");
-        let session = self.session.as_ref().unwrap();
+        
         // print!("got ref\n");
         // pub fn mutate(&mut self, mutator: &mut Mutator, input: &[u8], mutation_passes: u32)
         let mut input = self.rand_input();
@@ -791,9 +807,12 @@ impl<'a> Worker<'a> {
             input = Some(&[00; 17]);
         }
         // print!("getting mutation\n");
-        let mutated = session.mutate(mutator, input.unwrap(), self.rng.rand() % 9);
-        // print!("got mutation\n");
-        mutated
+
+        let session = self.session.as_ref().unwrap();
+        // let mutated = ;
+        // // print!("got mutation\n");
+        // mutated
+        session.mutate(mutator, input.unwrap(), self.rng.rand() % 9);
     }
 
     /// This routine can be used to map in a single page full of zeros as
@@ -1011,7 +1030,7 @@ impl<'a> Worker<'a> {
         }
 
         let vmexit = 'vm_loop: loop {
-            if cpu::rdtsc() >= timeout {
+            if cpu::rdtsc() >= timeout && !debug && !first_exec {
                 break 'vm_loop VmExit::Timeout;
             }
 
@@ -2602,11 +2621,22 @@ impl<'a> FuzzSession<'a> {
         // Send request for the corpus 
         ServerMessage::Corpus().serialize(&mut server).unwrap();
         server.flush().unwrap();
-
+        let hasher = FalkHasher::new();
         match ServerMessage::deserialize(&mut server).unwrap() {
+            
             ServerMessage::CorpusResponse (file) =>{
                 for input in file.iter(){
-                    self.inputs.push(Box::new(Arc::new(input.to_vec())));
+                    let hash = hasher.hash(input);
+
+                    // Check if this input already is in our database
+                    let record = self.input_dedup.entry_or_insert(
+                            &hash, hash as usize,
+                            || Box::new(Arc::new(input.to_vec())));
+
+                    if record.inserted(){
+                        self.inputs.push(Box::new(Arc::new(input.to_vec())));
+                    }
+                    
                 }
             },
             _ => {
@@ -2623,14 +2653,13 @@ impl<'a> FuzzSession<'a> {
 
 
     // Mutate test case
-    pub fn mutate(&self, mutator: &mut Mutator, input: &[u8], mutation_passes: usize) -> Arc<Vec<u8>>{
+    pub fn mutate(&self, mutator: &mut Mutator, input: &[u8], mutation_passes: usize){
         // print!("setting input here\n");
         mutator.input.clear();
         mutator.input.extend_from_slice( input);
         // print!("we set the input here mut passes {}\n", mutation_passes);
         mutator.mutate(mutation_passes, self);
         // print!("mutated, returning\n");
-        Arc::new(mutator.input.clone())
     }
 
     /// Report coverage

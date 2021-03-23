@@ -1143,6 +1143,7 @@ pub enum CpuMode {
 /// Virtual machine exit reason
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum VmExit {
+    MovDr,
     VmCall,
     InterruptWindow,
     Io { inst_len: u64, gpr: u8,},
@@ -1993,6 +1994,9 @@ impl Vm {
                     }
                     _ => panic!("Unexpected read/write to control register"),
                 }
+            }
+            29 => {
+                VmExit::MovDr
             }
             30 => {
                 let exit_qual = unsafe { vmread(Vmcs::ExitQualification) };

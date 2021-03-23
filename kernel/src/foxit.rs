@@ -56,7 +56,7 @@ pub fn fuzz() {
                     "mapped_foxit.falkdump",
                     |_worker| {},
                 )
-                .timeout(25_000_000)
+                .timeout(40_000_000)
                 .inject(inject)
                 .corpus()
                 .bp_handler(bphandler),
@@ -78,28 +78,52 @@ pub fn fuzz() {
 
     let mut ctr: u64 = 1;
     let id:u64 = core!().id as u64 +1;
-    let tsc = cpu::rdtsc();
+    let tsc = 0x1d71cad5fa6ef88;
+    let inplen = worker.len_of_inputs();
     let mut context: ContextStructure = ContextStructure {
-        mutator: Mutator::new().max_input_size(15 * 1024 * 1024).seed(cpu::rdtsc()+(core!().id*32) as u64),
+        mutator: Mutator::new().max_input_size(1024 * 1024).seed(cpu::rdtsc()+(core!().id*32) as u64),
         base_rdtsc: tsc,
         rdtsc: tsc,
         debug: false,
         first_exec: true,
+        dry_run: true,
+        cur_input: (inplen/4)* core!().id as usize,
+        len_of_inputs: worker.len_of_inputs(),
     };
     loop {
         let _vmexit = worker.fuzz_case(&mut context);
-        context.first_exec = (ctr % (2400 / (id))) == 0;
+        if context.dry_run{
+            context.first_exec = true;
+        }
+        else{
+            context.first_exec = (ctr % (2400 / (id))) == 0;
+        }
         ctr+=1;
+
+        
+        if context.cur_input >=  (inplen/4)* (core!().id as usize+1) && context.dry_run == true{
+            context.dry_run = false;
+            print!("!CORE:{} Dry run finished!", core!().id);
+        }
+        else{
+            print!("!CORE:{} dry run {} / {} completed with {:?}\n",core!().id ,context.cur_input, context.len_of_inputs, _vmexit);
+            context.cur_input+=1;
+        }
         // print!("vmexit {:#x?}\n", _vmexit);
-        if _vmexit != VmExit::Exception(Exception::Breakpoint){
-            print!("vmexit {:#x?}\n", _vmexit);
-        }
-        if _vmexit == (VmExit::Io { inst_len: 1, gpr: 0 }){
-            print!("tracing\n");
-            context.debug = true;
-            worker.fuzz_case(&mut context);
-            context.debug = false;
-        }
+        // if _vmexit != VmExit::Exception(Exception::Breakpoint){
+        //     print!("vmexit {:#x?}\n", _vmexit);
+        // }
+        // if _vmexit == (VmExit::EptViolation{
+        //     addr: page_table::PhysAddr(0xfee00300),
+        //     read: true,
+        //     write:false,
+        //     exec:false,
+        // } ){
+        //     print!("tracing\n");
+        //     context.debug = true;
+        //     print!("traced with {:?}\n", worker.fuzz_case(&mut context));
+        //     context.debug = false;
+        // }
 
         context.rdtsc = context.base_rdtsc;
     }
@@ -146,6 +170,8 @@ fn inject(_worker: &mut Worker, _context: &mut ContextStructure) {
     //_worker.write_virt_from(VirtAddr(BreakPoint::X86userFlushFileBufferstwo as u64), &input);
 
     _worker.write_virt_from(VirtAddr(BreakPoint::X86userFlushFileBuffers as u64), &input);
+
+    // _worker.write_virt_from(VirtAddr(BreakPoint::LoadLibraryEx as u64), &input);
     //_worker.write_virt_from(VirtAddr(BreakPoint::NtReadFile as u64), &input);
     // _worker.write_virt_from(VirtAddr(BreakPoint::NtReadFile as u64), &input);
     // _worker.write_virt_from(VirtAddr(BreakPoint::NtWriteFile as u64), &input);
@@ -157,12 +183,21 @@ fn inject(_worker: &mut Worker, _context: &mut ContextStructure) {
     worker.read_virt_into(VirtAddr(rbx), &mut input);
     print!("{:x?}", input);*/
 
-    if !_context.debug{
-        let input = _worker.mutate(
+    if !_context.debug && !_context.dry_run{
+        _worker.mutate(
             &mut _context.mutator,
         );
-        _worker.fuzz_input = Some(input.to_vec());
+        _worker.fuzz_input = Some(_context.mutator.input.clone());
     }
+
+    if _context.dry_run{
+        let nipo:Vec<u8> = _worker.get_input_at_idx(_context.cur_input).unwrap().to_vec();
+        _worker.fuzz_input = Some(nipo);
+    }
+
+    
+
+
     // let input: Vec<u8> = vec![
     //     0xff, 0x4f, 0xff, 0x51, 0x0, 0x29, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x0, 0x0, 0xfc, 0x0, 0x0,
     //     0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xff, 0x0, 0x0, 0x0, 0x0, 0x93, 0x0, 0x0, 0x0,
@@ -172,8 +207,8 @@ fn inject(_worker: &mut Worker, _context: &mut ContextStructure) {
     //     0x93, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x1, 0x1, 0x0, 0x0, 0x0, 0x0,
     //     0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
     // ];
-    // save the input back
-    
+    // // save the input back
+    // _worker.fuzz_input = Some(input.to_vec());
 }
 
 // Addresses of handled functions
@@ -201,6 +236,7 @@ enum BreakPoint {
     // // nt!KiPageFault+0x3de
     Crash = 0xfffff80768a6d094,
 
+    LoadLibraryEx = 0x772b1c30 ,
     GetSystemTimePreciseAsFileTime = 0x772be330,
     X86usercreatefile = 0x75c63bb0,
     //X86usercreatefiletwo = 0x756e3bb0,
@@ -249,6 +285,31 @@ fn bphandler(
             print!("flushbufs\n");
             return false;
         }
+        BreakPoint::LoadLibraryEx => {
+            //print!("loadlibrary\n");
+            // the utf-16 bytes we read to detect the filename
+            let mut file_name_bytes: [u8; 16] = [0; 16];
+
+            // base of the utf-16 thingy
+            let addy = _worker.read_virt::<u32>(VirtAddr(rsp+4)).expect("fug\n");
+
+            // Raw addy of the utf 16 string
+            let fname_address = _worker.read_virt::<u64>(VirtAddr(addy as u64)).expect("ss");
+
+            // raw utf-16 bytes
+            _worker.read_virt_into(VirtAddr(fname_address), &mut file_name_bytes);
+            // print!("{:#x?}\n", file_name_bytes);
+            // Convert the array from u8 to u16 and convert it to a rust string
+            let (front, slice, back) = unsafe { file_name_bytes.align_to::<u16>() };
+            if front.is_empty() && back.is_empty() {
+                
+                print!("{}\n", alloc::string::String::from_utf16(slice).ok().unwrap());
+            } else {
+                print!("failed reading lol\n");
+            };
+            
+            return false;
+        }
         
         BreakPoint::X86userdeletefile => {
             _worker.mod_reg(Register::Rsp, |x| x + 0x8);
@@ -260,8 +321,7 @@ fn bphandler(
         BreakPoint::X86usersetfilesizepointerex => {
             let addr = rsp + 16;
             let base_large_integer = _worker
-                .read_virt::<u32>(VirtAddr(addr))
-                .expect("Couldn't get the virtaddr of the large integer.\n");
+                .read_virt::<u32>(VirtAddr(addr)).expect("base setfilepointer failed");
             _worker.write_virt::<u64>(VirtAddr(base_large_integer as u64), 0 as u64);
 
             _worker.mod_reg(Register::Rsp, |x| x + 0x18);
@@ -276,12 +336,15 @@ fn bphandler(
             return true;
         }
         BreakPoint::GetSystemTimePreciseAsFileTime =>{
+            //print!("time\n");
             let addr = rsp+0x8;
             let base_large_integer = _worker
-                .read_virt::<u32>(VirtAddr(addr))
-                .expect("Couldn't get the virtaddr of the large integer.\n");
-            context.rdtsc+=5000000;
-            _worker.write_virt::<u64>(VirtAddr(base_large_integer as u64), context.rdtsc );
+                .read_virt::<u32>(VirtAddr(addr));
+            context.rdtsc+=50000000000;
+            if base_large_integer !=None{
+                _worker.write_virt::<u64>(VirtAddr(base_large_integer.unwrap() as u64), context.rdtsc );
+                _worker.mod_reg(Register::Rsp, |x| x + 0x8);
+            }
 
             return true;
         }
