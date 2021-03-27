@@ -621,6 +621,8 @@ struct Context<'a> {
 
 fn main() -> io::Result<()> {
 
+    let mut maxsize = 0;
+
     
     let mut corpus:Vec<Vec<u8>> = Vec::new();
     let mut hashdb:HashSet<Vec<u8>> =  HashSet::new();
@@ -630,8 +632,12 @@ fn main() -> io::Result<()> {
         let data = std::fs::read(fname).expect("could not read a file from corpus.");
         if hashdb.insert(data.clone()) && data.len() >= 16{
             corpus.push(data.clone());
+            if data.len() > maxsize{
+                maxsize = data.len();
+            }
         }
     }
+    print!("MAX SIZE OF INPUT = {} \n", maxsize);
     let context = Arc::new(Context {
         corpus:        corpus,
         file_db:       Default::default(),

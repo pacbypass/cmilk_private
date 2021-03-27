@@ -29,7 +29,7 @@ use crate::net::netmapping::NetMapping;
 use crate::core_locals::LockInterrupts;
 use crate::paging::*;
 
-use basic_mutator::{Mutator, InputDatabase};
+use basic_mutator::{Mutator, InputDatabase, EmptyDatabase};
 use aht::Aht;
 use falktp::{CoverageRecord, InputRecord, ServerMessage, CrashType};
 use falktp::PageFaultType;
@@ -187,7 +187,7 @@ impl Rng {
 }
 
 
-pub struct ContextStructure{
+pub struct ContextStructure {
     pub mutator: Mutator,
     pub base_rdtsc: u64,
     pub debug: bool, 
@@ -196,6 +196,8 @@ pub struct ContextStructure{
     pub dry_run: bool,
     pub cur_input: usize,
     pub len_of_inputs: usize,
+    pub input_offset: usize,
+    pub input_size: usize,
 }
 
 /// Statistics collected about number of fuzz cases and VM exits
@@ -812,7 +814,7 @@ impl<'a> Worker<'a> {
         // let mutated = ;
         // // print!("got mutation\n");
         // mutated
-        session.mutate(mutator, input.unwrap(), self.rng.rand() % 9);
+        session.mutate(mutator, input.unwrap(), self.rng.rand() % 6);
     }
 
     /// This routine can be used to map in a single page full of zeros as
@@ -1188,7 +1190,7 @@ impl<'a> Worker<'a> {
                             // let rip      = self.reg(Register::Rip);
                             //inject the input into the target program
                             //self.read_virt_into(VirtAddr(rip), &mut input);
-                            print!("hit apic\n");
+                            // print!("hit apic\n");
                             //print!("{:x?}", input);
                         }
                     }
@@ -2658,7 +2660,7 @@ impl<'a> FuzzSession<'a> {
         mutator.input.clear();
         mutator.input.extend_from_slice( input);
         // print!("we set the input here mut passes {}\n", mutation_passes);
-        mutator.mutate(mutation_passes, self);
+        mutator.mutate(mutation_passes, &EmptyDatabase);
         // print!("mutated, returning\n");
     }
 
